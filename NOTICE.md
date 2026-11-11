@@ -27,6 +27,7 @@
 | AndroidX Room | 2.6.1 | Apache License 2.0 |
 | Kotlin 표준 라이브러리, kotlinx.coroutines | 2.0.21, 1.8.1 | Apache License 2.0 |
 | Gson (TextToSpeech SDK가 씀) | 2.10.1 | Apache License 2.0 |
+| JNA (`net.java.dev.jna`, Pleos SDK가 함께 가져옴) | 5.13.0 | Apache License 2.0 또는 LGPL 2.1 (이중 라이선스) |
 
 ## 만들 때만 쓴 도구 (앱에 들어가지 않음)
 
