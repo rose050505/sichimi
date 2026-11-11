@@ -1,0 +1,28 @@
+# 빌드 산출물
+.gradle/
+build/
+*/build/
+.kotlin/
+captures/
+*.iml
+.idea/
+.externalNativeBuild/
+.cxx/
+
+# 로컬 설정과 비밀값 (저장소에 넣지 않는다)
+local.properties
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# 임시 음원 (제출물에 남기지 않는다)
+songs/temp-*/
+
+# 녹화 작업 파일
+recordings/
+docs/evidence/**/*.wav
+
+# 파이썬 캐시
+__pycache__/
+*.pyc

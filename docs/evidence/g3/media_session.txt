@@ -1,0 +1,15 @@
+      package=app.mollaebang
+      launchIntent=PendingIntent{10b42c5: PendingIntentRecord{7f6b03f app.mollaebang startActivity (allowlist: 1a34df8:+30s0ms/0/NOTIFICATION_SERVICE/NotificationManagerService)}}
+      mediaButtonReceiver=null
+      active=true
+      flags=7
+      rating type=0
+      controllers: 2
+      state=PlaybackState {state=PLAYING(3), position=140519, buffered position=225396, speed=1.0, updated=2249288, actions=7340031, custom actions=[], active item id=0, error=null}
+      audioAttrs=AudioAttributes: usage=USAGE_MEDIA content=CONTENT_TYPE_MUSIC flags=0x800 tags= bundle=null
+      volumeType=LOCAL, controlType=ABSOLUTE, max=0, current=0, volumeControlId=null
+      metadata: size=7, description=측정용 신호음, 임시 음원, null
+      queueTitle=null, size=3
+    BluetoothMediaBrowserService com.android.bluetooth/BluetoothMediaBrowserService (userId=10)
+      ownerPid=1643, ownerUid=1001002, userId=10
+      package=com.android.bluetooth

@@ -1,0 +1,32 @@
+--------- beginning of main
+         1794401816.033 25322 25358 I MB.Signal: 좌석 FRONT_RIGHT callback -> Known(value=false)
+         1794401816.687 25322 25358 I MB.Signal: 좌석 FRONT_RIGHT callback -> Known(value=true)
+         1794401817.345 25322 25358 I MB.Signal: 좌석 FRONT_LEFT callback -> Known(value=false)
+         1794401817.998 25322 25358 I MB.Signal: 좌석 REAR_LEFT callback -> Known(value=false)
+         1794401818.653 25322 25358 I MB.Signal: 좌석 REAR_LEFT callback -> Known(value=true)
+         1794401819.309 25322 25351 I MB.Signal: 좌석 REAR_RIGHT callback -> Known(value=false)
+         1794401819.962 25322 25351 I MB.Signal: 좌석 REAR_RIGHT callback -> Known(value=true)
+         1794401820.617 25322 25351 I MB.Signal: 문 FRONT_RIGHT callback pos=1 -> Known(value=true)
+         1794401821.275 25322 25351 I MB.Signal: 문 FRONT_RIGHT callback pos=0 -> Known(value=false)
+         1794401821.926 25322 25351 I MB.Signal: 문 FRONT_LEFT callback pos=1 -> Known(value=true)
+         1794401822.582 25322 25351 I MB.Signal: 문 FRONT_LEFT callback pos=0 -> Known(value=false)
+         1794401823.236 25322 25665 I MB.Signal: 문 REAR_LEFT callback pos=1 -> Known(value=true)
+         1794401823.894 25322 25665 I MB.Signal: 문 REAR_LEFT callback pos=0 -> Known(value=false)
+         1794401824.548 25322 25665 I MB.Signal: 문 REAR_RIGHT callback pos=1 -> Known(value=true)
+         1794401825.203 25322 25358 I MB.Signal: 문 REAR_RIGHT callback pos=0 -> Known(value=false)
+         1794401825.859 25322 25358 I MB.Signal: 창문 FRONT_LEFT callback pos=3 -> Known(value=30)
+         1794401826.513 25322 25665 I MB.Signal: 창문 FRONT_LEFT callback pos=0 -> Known(value=0)
+         1794401830.794 25322 25665 I MB.Signal: 창문 FRONT_LEFT callback pos=10 -> Known(value=100)
+         1794401831.450 25322 25665 I MB.Signal: 창문 FRONT_LEFT callback pos=0 -> Known(value=0)
+         1794401832.106 25322 25665 I MB.Signal: 창문 REAR_RIGHT callback pos=5 -> Known(value=50)
+         1794401832.759 25322 25665 I MB.Signal: 창문 REAR_RIGHT callback pos=0 -> Known(value=0)
+         1794401833.412 25322 25665 I MB.Signal: 기어(Pleos SDK) callback value=GEAR_DRIVE -> DRIVE
+         1794401833.414 25322 25322 I MB.Signal: 기어(AAOS GEAR_SELECTION) callback raw=8 status=0 -> DRIVE
+         1794401834.072 25322 25665 I MB.Signal: 기어(Pleos SDK) callback value=GEAR_REVERSE -> REVERSE
+         1794401834.080 25322 25322 I MB.Signal: 기어(AAOS GEAR_SELECTION) callback raw=2 status=0 -> REVERSE
+         1794401834.736 25322 25665 I MB.Signal: 기어(Pleos SDK) callback value=GEAR_NEUTRAL -> NEUTRAL
+         1794401834.748 25322 25322 I MB.Signal: 기어(AAOS GEAR_SELECTION) callback raw=1 status=0 -> NEUTRAL
+         1794401835.380 25322 25665 I MB.Signal: 기어(Pleos SDK) callback value=GEAR_PARK -> PARK
+         1794401835.416 25322 25322 I MB.Signal: 기어(AAOS GEAR_SELECTION) callback raw=4 status=0 -> PARK
+         1794401836.036 25322 25665 I MB.Signal: 방향지시등 callback value=LEFT
+         1794401836.688 25322 25358 I MB.Signal: 방향지시등 callback value=OFF

@@ -1,0 +1,30 @@
+11-11 05:21:07.349  3956  6681 D ConnectTTSRepositoryImpl: [2026-11-11 05:21:07.349448] TTSScript: requestTTS script: ScriptGuidance(script=이번 신호에서 좌회전입니다., priority=30, priorityPolicy=Priority, isSSM
+11-11 05:21:07.351  3956  4366 D ConnectTTSRepositoryImpl: tts request audio focus
+11-11 05:21:07.352   771   785 I MediaFocusControl: requestAudioFocus() from uid/pid 1010127/3956 AA=USAGE_ASSISTANCE_NAVIGATION_GUIDANCE/CONTENT_TYPE_SPEECH clientId=android.media.AudioManager@af99f9
+11-11 05:21:07.353  1118  1118 I CarAudioFocus: Evaluating GAIN_TRANSIENT_MAY_DUCK request for client android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.ConnectTTSRe
+11-11 05:21:07.353  1118  1118 I CarAudioFocus: Scanning focus holders...
+11-11 05:21:07.354  1118  1118 I CarAudioFocus: android.media.AudioManager@4e58237androidx.media3.exoplayer.AudioFocusManager$AudioFocusListener@ef63a4
+11-11 05:21:07.354  1118  1118 I CarAudioFocus: Scanning those who've already lost focus...
+11-11 05:21:07.354  1118  1118 I CarAudioFocus: AUDIOFOCUS_REQUEST_GRANTED
+11-11 05:21:07.354  1118  1118 I CarAudioFocus: onAudioFocusRequest for client android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.ConnectTTSRepositoryImpl$$ExternalS
+11-11 05:21:07.357  3956  4366 D ConnectTTSRepositoryImpl: requestAudioFocus: AUDIOFOCUS_REQUEST_GRANTED
+11-11 05:21:07.357  3956  4366 D ConnectTTSRepositoryImpl: tts ttsAgent speak: 이번 신호에서 좌회전입니다.
+11-11 05:21:07.374  3956  4375 D ConnectTTSRepositoryImpl$ttsInitialize: navi tts onReady
+11-11 05:21:07.431  3956  4375 D ConnectTTSRepositoryImpl$ttsInitialize: navi tts onStart
+11-11 05:21:11.188  3956  3974 D ConnectTTSRepositoryImpl$ttsInitialize: navi tts onDone, abandonAudioFocusRequest
+11-11 05:21:11.189   771   905 I MediaFocusControl: abandonAudioFocus() from uid/pid 1010127/3956 clientId=android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.Connect
+11-11 05:21:11.190  1118  1118 I CarAudioFocus: onAudioFocusAbandon for client android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.ConnectTTSRepositoryImpl$$ExternalS
+11-11 05:21:11.190  1118  1118 I CarAudioFocus: removeFocusEntry android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.ConnectTTSRepositoryImpl$$ExternalSyntheticLambda
+11-11 05:22:22.823  3956  3956 D ConnectTTSRepositoryImpl: [2026-11-11 05:22:22.823002] TTSScript: requestTTS script: ScriptGuidance(script=안내를 종료합니다., priority=10, priorityPolicy=Priority, isSSML=fal
+11-11 05:22:22.823  3956  4072 D ConnectTTSRepositoryImpl: tts request audio focus
+11-11 05:22:22.824   771  2611 I MediaFocusControl: requestAudioFocus() from uid/pid 1010127/3956 AA=USAGE_ASSISTANCE_NAVIGATION_GUIDANCE/CONTENT_TYPE_SPEECH clientId=android.media.AudioManager@af99f9
+11-11 05:22:22.826  1118  1118 I CarAudioFocus: Evaluating GAIN_TRANSIENT_MAY_DUCK request for client android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.ConnectTTSRe
+11-11 05:22:22.826  1118  1118 I CarAudioFocus: Scanning focus holders...
+11-11 05:22:22.827  1118  1118 I CarAudioFocus: android.media.AudioManager@4e58237androidx.media3.exoplayer.AudioFocusManager$AudioFocusListener@ef63a4
+11-11 05:22:22.827  1118  1118 I CarAudioFocus: Scanning those who've already lost focus...
+11-11 05:22:22.827  1118  1118 I CarAudioFocus: AUDIOFOCUS_REQUEST_GRANTED
+11-11 05:22:22.827  1118  1118 I CarAudioFocus: onAudioFocusRequest for client android.media.AudioManager@af99f94ai.umos.maps.android.navigation.app.data.repository.ConnectTTSRepositoryImpl$$ExternalS
+11-11 05:22:22.828  3956  4072 D ConnectTTSRepositoryImpl: requestAudioFocus: AUDIOFOCUS_REQUEST_GRANTED
+11-11 05:22:22.828  3956  4072 D ConnectTTSRepositoryImpl: tts ttsAgent speak: 안내를 종료합니다.
+11-11 05:22:22.859  3956  4365 D ConnectTTSRepositoryImpl$ttsInitialize: navi tts onReady
+11-11 05:22:22.859  3956  4365 D ConnectTTSRepositoryImpl$ttsInitialize: navi tts onStart
