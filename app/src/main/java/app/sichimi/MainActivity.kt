@@ -19,6 +19,7 @@ import app.sichimi.gate.SoloLedger
 import app.sichimi.gate.Zone
 import app.sichimi.songs.LyricLine
 import app.sichimi.ui.DrivingScreen
+import app.sichimi.ui.ChartRow
 import app.sichimi.ui.MonthRecords
 import app.sichimi.ui.ParkedScreen
 import app.sichimi.ui.ParkedTab
@@ -149,7 +150,7 @@ private fun monthRecords(graph: Graph): MonthRecords {
             MonthRecords(
                 soloSongs = songs,
                 soloMs = ms,
-                top = top.map { (graph.songs.find(it.songId)?.title ?: it.songId) to it.plays },
+                top = top.map { ChartRow(graph.songs.find(it.songId)?.title ?: it.songId, it.plays, it.soloMs) },
                 exposures = causes.associate { it.cause to it.n },
                 fastestMs = fastest,
             )

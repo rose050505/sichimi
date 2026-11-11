@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,7 +59,7 @@ object Palette {
     val text = Color(0xFFF4F6F8)
     val sub = Color(0xFFB4BCC6)
     val dim = Color(0xFF7C8591)
-    val accent = Color(0xFFFFB547) // 노래방 상태에서만 쓴다
+    val accent = Color(0xFFFFB547) // 노래방 상태와, 혼자일 때만 보이는 내 기록에서만 쓴다
     val danger = Color(0xFFFF6B5B)
 }
 
@@ -309,10 +310,13 @@ fun QueueTab(player: PlayerUi, songs: List<SongRow>, onPlayNow: (String) -> Unit
 
 // ---------- 내 기록 ----------
 
+/** 비밀 차트 한 줄: 이번 달 혼자 부른 횟수와 그 곡에서 혼자 부른 시간. */
+data class ChartRow(val title: String, val plays: Int, val soloMs: Long)
+
 data class MonthRecords(
     val soloSongs: Int = 0,
     val soloMs: Long = 0,
-    val top: List<Pair<String, Int>> = emptyList(),
+    val top: List<ChartRow> = emptyList(),
     val exposures: Map<String, Int> = emptyMap(),
     val fastestMs: Long? = null,
 )
@@ -341,13 +345,19 @@ fun RecordsTab(r: MonthRecords) {
             r.fastestMs?.let { Text("가장 빠른 대피 ${secondsText(it)}", color = Palette.accent, fontSize = 30.sp) }
         }
         Column(Modifier.weight(1f).clip(RoundedCornerShape(24.dp)).background(Palette.surface).padding(32.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("많이 부른 곡", color = Palette.sub, fontSize = BODY)
-            if (r.top.isEmpty()) Text("아직 없습니다", color = Palette.dim, fontSize = BODY)
-            r.top.forEachIndexed { i, (title, n) ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${i + 1}", color = Palette.dim, fontSize = 28.sp, modifier = Modifier.width(48.dp))
-                    Text(title, color = Palette.text, fontSize = 28.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${n}번", color = Palette.sub, fontSize = BODY)
+            Text("나만의 비밀 차트 · 많이 부른 곡", color = Palette.sub, fontSize = BODY)
+            if (r.top.isEmpty()) Text("아직 없습니다. 혼자 10초 넘게 부른 곡이 여기에 올라갑니다", color = Palette.dim, fontSize = BODY)
+            val most = r.top.maxOfOrNull { it.plays } ?: 1
+            r.top.forEachIndexed { i, row ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${i + 1}", color = if (i == 0) Palette.accent else Palette.dim, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(48.dp))
+                        Text(row.title, color = Palette.text, fontSize = 28.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${row.plays}번 · ${minutesText(row.soloMs)}", color = Palette.sub, fontSize = BODY)
+                    }
+                    Box(Modifier.padding(start = 48.dp).fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Palette.bg)) {
+                        Box(Modifier.fillMaxWidth(row.plays.toFloat() / most).fillMaxHeight().clip(RoundedCornerShape(5.dp)).background(if (i == 0) Palette.accent else Palette.sub))
+                    }
                 }
             }
         }
