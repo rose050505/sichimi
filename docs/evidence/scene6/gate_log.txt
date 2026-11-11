@@ -1,0 +1,21 @@
+--------- beginning of main
+11-11 09:38:07.582 I/SC.Gate ( 6256): 주행 시작 id=1
+11-11 09:38:12.584 I/SC.Gate ( 6256): 상태 NORMAL -> ARMING
+11-11 09:38:17.585 I/SC.Gate ( 6256): 상태 ARMING -> KARAOKE
+11-11 09:38:17.585 I/SC.Gate ( 6256): 가수 음량 -> 0.2 (600ms) seq=1
+11-11 09:38:17.613 I/SC.Gate ( 6256): 상태 KARAOKE -> RETURN
+11-11 09:38:17.613 I/SC.Gate ( 6256): 가수 음량 -> 1.0 (200ms) seq=2
+11-11 09:38:31.682 I/SC.Gate ( 6256): 상태 RETURN -> KARAOKE
+11-11 09:38:31.682 I/SC.Gate ( 6256): 가수 음량 -> 0.2 (600ms) seq=3
+11-11 09:38:31.977 I/SC.Gate ( 6256): 상태 KARAOKE -> RETURN
+11-11 09:38:31.977 I/SC.Gate ( 6256): 가수 음량 -> 1.0 (200ms) seq=4
+11-11 09:38:44.719 I/SC.Gate ( 6256): 상태 RETURN -> KARAOKE
+11-11 09:38:44.719 I/SC.Gate ( 6256): 가수 음량 -> 0.2 (600ms) seq=5
+11-11 09:38:44.839 I/SC.Gate ( 6256): 상태 KARAOKE -> RETURN
+11-11 09:38:44.839 I/SC.Gate ( 6256): 가수 음량 -> 1.0 (200ms) seq=6
+11-11 09:38:45.075 I/SC.Gate ( 6256): 상태 RETURN -> NORMAL
+11-11 09:38:45.076 I/SC.Gate ( 6256): 들킬 뻔 cause=DOOR reactionMs=null song=temp-1 pos=32276
+11-11 09:38:46.468 I/SC.Gate ( 6256): 상태 NORMAL -> ARMING
+11-11 09:38:54.469 I/SC.Gate ( 6256): 상태 ARMING -> KARAOKE
+11-11 09:38:54.469 I/SC.Gate ( 6256): 가수 음량 -> 0.2 (600ms) seq=7
+11-11 09:38:57.631 I/SC.Gate ( 6256): 주행 끝 id=1 solo=3604ms 곡=0 들킬뻔=1
