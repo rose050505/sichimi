@@ -13,6 +13,8 @@ data class Song(
     val lyricsAsset: String?,
     val source: String,
     val license: String,
+    /** 화면에 보일 짧은 출처·라이선스 표시. */
+    val credit: String = "",
 )
 
 /**
@@ -49,6 +51,7 @@ class AssetSongSource(private val context: Context) : SongSource {
                 lyricsAsset = if ("lyrics.lrc" in files) "$dir/lyrics.lrc" else null,
                 source = meta.optString("source", ""),
                 license = meta.optString("license", ""),
+                credit = meta.optString("credit", ""),
             )
         }
     }

@@ -158,6 +158,7 @@ fun ParkedScreen(
     summary: String?,
     onDismissSummary: () -> Unit,
     lyrics: List<LyricLine>,
+    credit: String,
     positionMs: () -> Long,
     tab: ParkedTab,
     onTab: (ParkedTab) -> Unit,
@@ -197,7 +198,7 @@ fun ParkedScreen(
         Spacer(Modifier.height(24.dp))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (current) {
-                ParkedTab.PLAYER -> PlayerTab(state, player, lyrics, positionMs, onPrev, onPlayPause, onNext)
+                ParkedTab.PLAYER -> PlayerTab(state, player, lyrics, credit, positionMs, onPrev, onPlayPause, onNext)
                 ParkedTab.QUEUE -> queueContent()
                 ParkedTab.RECORDS -> recordsContent()
                 ParkedTab.SETTINGS -> settingsContent()
@@ -217,7 +218,7 @@ fun PillButton(label: String, onClick: () -> Unit, color: Color = Palette.surfac
 
 @Composable
 private fun PlayerTab(
-    state: GateState, player: PlayerUi, lyrics: List<LyricLine>, positionMs: () -> Long,
+    state: GateState, player: PlayerUi, lyrics: List<LyricLine>, credit: String, positionMs: () -> Long,
     onPrev: () -> Unit, onPlayPause: () -> Unit, onNext: () -> Unit,
 ) {
     var pos by remember { mutableLongStateOf(0L) }
@@ -231,6 +232,8 @@ private fun PlayerTab(
             Spacer(Modifier.height(16.dp))
             Text(player.title.ifEmpty { " " }, color = Palette.text, fontSize = 42.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(player.artist.ifEmpty { " " }, color = Palette.sub, fontSize = 30.sp)
+            // 곡 출처와 라이선스(CC BY 표시). 주차 화면에만 둔다.
+            if (credit.isNotEmpty()) Text(credit, color = Palette.dim, fontSize = 24.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(40.dp))
             TransportRow(player.isPlaying, 112, onPrev, onPlayPause, onNext)
         }

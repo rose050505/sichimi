@@ -96,6 +96,7 @@ private fun App(graph: Graph, connection: PlayerConnection) {
         summary = summary,
         onDismissSummary = graph.controller::dismissSummary,
         lyrics = lyrics,
+        credit = player.songId?.let { graph.songs.find(it)?.credit }.orEmpty(),
         positionMs = connection::positionMs,
         tab = tab,
         onTab = { tab = it },
