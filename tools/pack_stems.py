@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """반주 스템과 보컬 스템을 앱이 읽는 한 파일로 묶는다.
 
-  tools/pack_stems.py <곡 id> <반주 파일> <보컬 파일> [--mix2] [--title 제목] [--artist 가수]
-                      [--source 출처] [--license 라이선스]
+  tools/pack_stems.py <곡 id> <반주 파일> <보컬 파일> [--mix2] [--opus 비트레이트] [--into 폴더]
+                      [--title 제목] [--artist 가수] [--source 출처] [--license 라이선스]
 
 결과: songs/<id>/mix4.flac (채널 0·1 = 반주 좌·우, 2·3 = 보컬 좌·우)
+      --opus 256k이면 songs/<id>/mix4.ogg (Opus 4채널, 48kHz. 반주 쌍과 보컬 쌍을 따로 부호화해 서로 섞이지 않는다)
       --mix2이면 songs/<id>/mix2.flac (왼쪽 = 반주 모노, 오른쪽 = 보컬 모노)
       songs/<id>/meta.json (없을 때만 만든다)
+      --into songs-dev 이면 songs/ 대신 songs-dev/에 만든다(debug 빌드에만 들어가는 개발용 곡).
 
 두 스템은 길이와 시작점이 같아야 한다. 한 파일에 담기 때문에 재생 중에 어긋나지 않는다.
 FLAC 블록 크기를 1024로 작게 잡아 음량 변화가 귀에 닿기까지의 지연을 줄인다.
@@ -39,9 +41,15 @@ def main():
     ap.add_argument("--source", default="")
     ap.add_argument("--license", default="")
     ap.add_argument("--rate", type=int, default=44100)
+    ap.add_argument("--opus", default="", help="Opus 비트레이트(예: 256k). mix4에만 쓴다")
+    ap.add_argument("--into", default="songs")
     a = ap.parse_args()
+    if a.opus and a.mix2:
+        ap.error("--opus는 mix4에만 쓴다(2채널 Opus는 반주와 보컬을 함께 부호화해 서로 섞일 수 있다)")
+    if a.opus:
+        a.rate = 48000
 
-    out_dir = os.path.join(ROOT, "songs", a.song_id)
+    out_dir = os.path.join(ROOT, a.into, a.song_id)
     os.makedirs(out_dir, exist_ok=True)
     if a.mix2:
         out = os.path.join(out_dir, "mix2.flac")
@@ -49,14 +57,15 @@ def main():
                  "[1:a]aformat=sample_rates={r},pan=mono|c0=0.5*c0+0.5*c1[voc];"
                  "[acc][voc]join=inputs=2:channel_layout=stereo:map=0.0-FL|1.0-FR[a]").format(r=a.rate)
     else:
-        out = os.path.join(out_dir, "mix4.flac")
+        out = os.path.join(out_dir, "mix4.ogg" if a.opus else "mix4.flac")
         graph = ("[0:a]aformat=sample_rates={r}:channel_layouts=stereo[acc];"
                  "[1:a]aformat=sample_rates={r}:channel_layouts=stereo[voc];"
                  "[acc][voc]join=inputs=2:channel_layout=quad:map=0.0-FL|0.1-FR|1.0-BL|1.1-BR[a]").format(r=a.rate)
     subprocess.check_call([
         "ffmpeg", "-y", "-v", "error", "-i", a.accompaniment, "-i", a.vocal,
         "-filter_complex", graph, "-map", "[a]",
-        "-c:a", "flac", "-sample_fmt", "s16", "-frame_size", "1024", "-compression_level", "8", out,
+        *(["-c:a", "libopus", "-b:a", a.opus, "-mapping_family", "1", "-frame_duration", "20"] if a.opus else
+          ["-c:a", "flac", "-sample_fmt", "s16", "-frame_size", "1024", "-compression_level", "8"]), out,
     ])
 
     meta_path = os.path.join(out_dir, "meta.json")

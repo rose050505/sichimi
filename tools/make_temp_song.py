@@ -4,7 +4,7 @@
   tools/make_temp_song.py <번호>       # 1, 2
   tools/make_temp_song.py probe        # G2 측정용 신호음
 
-결과: songs/temp-<번호>/ (mix4.flac, meta.json, lyrics.lrc). `.gitignore`가 이 폴더를 뺀다.
+결과: songs-dev/temp-<번호>/ (mix4.flac, meta.json, lyrics.lrc). debug 빌드에만 들어가고 `.gitignore`가 이 폴더를 뺀다.
 반주는 화음·베이스·하이햇 루프, "보컬"은 비브라토가 있는 멜로디 한 줄이다.
 보컬 스템이 줄고 돌아오는 것을 귀로 확인하는 데만 쓴다.
 """
@@ -106,13 +106,14 @@ def main(num):
         write_wav(acc, acc_l, acc_r)
         write_wav(vo, voc, voc)
         sid = f"temp-{num}"
-        meta_path = os.path.join(ROOT, "songs", sid, "meta.json")
+        meta_path = os.path.join(ROOT, "songs-dev", sid, "meta.json")
         if os.path.exists(meta_path):
             os.remove(meta_path)
         subprocess.check_call([sys.executable, os.path.join(ROOT, "tools", "pack_stems.py"), sid, acc, vo,
                                "--title", spec["title"], "--artist", "임시 음원",
-                               "--source", "tools/make_temp_song.py로 생성(개발용, 제출하지 않음)", "--license", "-"])
-    with open(os.path.join(ROOT, "songs", f"temp-{num}", "lyrics.lrc"), "w", encoding="utf-8") as f:
+                               "--source", "tools/make_temp_song.py로 생성(개발용, 제출하지 않음)", "--license", "-",
+                               "--into", "songs-dev"])
+    with open(os.path.join(ROOT, "songs-dev", f"temp-{num}", "lyrics.lrc"), "w", encoding="utf-8") as f:
         f.write(lrc(seconds, spec["bpm"]))
 
 
@@ -125,7 +126,7 @@ def probe():
         subprocess.check_call(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"anullsrc=r={RATE}:cl=stereo", "-t", "900", acc])
         subprocess.check_call(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"sine=frequency=880:sample_rate={RATE}:duration=900",
                                "-af", "volume=0.35,pan=stereo|c0=c0|c1=c0", vo])
-        meta_path = os.path.join(ROOT, "songs", sid, "meta.json")
+        meta_path = os.path.join(ROOT, "songs-dev", sid, "meta.json")
         if os.path.exists(meta_path):
             os.remove(meta_path)
         subprocess.check_call([sys.executable, os.path.join(ROOT, "tools", "pack_stems.py"), sid, acc, vo,

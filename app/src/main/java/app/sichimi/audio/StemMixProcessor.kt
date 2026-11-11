@@ -58,6 +58,7 @@ class StemMixProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioFormat): AudioFormat {
+        android.util.Log.i("SC.Mixer", "입력 ${inputAudioFormat.channelCount}채널 ${inputAudioFormat.sampleRate}Hz enc=${inputAudioFormat.encoding}")
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) throw UnhandledAudioFormatException(inputAudioFormat)
         return when (inputAudioFormat.channelCount) {
             4, 2 -> {

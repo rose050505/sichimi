@@ -25,7 +25,7 @@ interface SongSource {
     fun lyrics(song: Song): List<LyricLine>
 }
 
-/** `assets/<id>/{mix4.flac|mix2.flac, meta.json, lyrics.lrc}`를 읽는다. 저장소의 `songs/` 폴더가 assets로 들어간다. */
+/** `assets/<id>/{mix4.ogg|mix4.flac|mix2.ogg|mix2.flac, meta.json, lyrics.lrc}`를 읽는다. ogg는 Opus(용량이 작다). 저장소의 `songs/` 폴더가 assets로 들어간다. */
 class AssetSongSource(private val context: Context) : SongSource {
     private val cache: List<Song> by lazy { load() }
 
@@ -37,11 +37,8 @@ class AssetSongSource(private val context: Context) : SongSource {
         return dirs.mapNotNull { dir ->
             val files = am.list(dir)?.toSet().orEmpty()
             if ("meta.json" !in files) return@mapNotNull null
-            val audio = when {
-                "mix4.flac" in files -> "mix4.flac"
-                "mix2.flac" in files -> "mix2.flac"
-                else -> return@mapNotNull null
-            }
+            val audio = listOf("mix4.ogg", "mix4.flac", "mix2.ogg", "mix2.flac").firstOrNull { it in files }
+                ?: return@mapNotNull null
             val meta = JSONObject(am.open("$dir/meta.json").bufferedReader().use { it.readText() })
             Song(
                 id = dir,

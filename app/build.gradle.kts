@@ -40,8 +40,6 @@ android {
             signingConfig = releaseSigning
         }
     }
-    // 개발용 임시 음원(songs/temp-*)은 release APK에 넣지 않는다.
-    androidResources { ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:!temp-*" }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -49,6 +47,8 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
     sourceSets["main"].assets.srcDirs("../songs")
+    // 개발용 임시 음원은 songs-dev/에 두고 debug 빌드에만 넣는다(release APK에는 들어가지 않는다).
+    sourceSets["debug"].assets.srcDirs("../songs-dev")
 }
 
 dependencies {
