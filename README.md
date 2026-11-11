@@ -4,7 +4,9 @@
 
 혼자 출퇴근하는 운전자를 위한 Pleos Connect(Android Automotive OS) 음악 앱입니다. 켜고 끄는 버튼이 없습니다. 좌석·문·창문·기어 신호가 노래방을 여닫습니다.
 
-<!-- 장면 1~2 영상(GIF): docs/media/ 에 넣을 자리 -->
+![장면 1~2: 혼자이고 문이 닫히면 5초 뒤 「혼자만의 노래방」, 동승석 문을 열면 곧바로 평범한 재생 화면](docs/media/scene1-2.gif)
+
+*(소리 없는 화면 녹화입니다. 왼쪽 계기판에 문 열림이 보이는 순간 오른쪽 앱이 평범한 재생 화면으로 돌아갑니다. 소리는 시연 영상에서 확인해 주세요.)*
 
 ## 실행 세 단계
 
@@ -19,7 +21,7 @@
 | 항목 | 이 앱에서 | 증거 |
 |---|---|---|
 | 차량특화성 | 좌석 착석·문·창문·기어·방향지시등 신호로 "혼자이고 닫힌 차"를 판정하는 문지기(상태 기계). 휴대폰에서는 알 수 없는 차 안 상황에만 열린다 | 아래 [문지기와 신호](#문지기와-신호), 상태 기계 [`gate/`](gate/src/main/kotlin/app/sichimi/gate/PrivacyGate.kt) |
-| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션 | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G4와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 상태 기계 단위 테스트 62개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
+| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션 | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G4와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 상태 기계 단위 테스트 63개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
 | 창의성 | 노래방을 사용자가 켜지 않는다. 동승자가 타거나 문·창문이 열리면 앱이 먼저 시치미를 뗀다. 혼자가 아닐 때는 화면 어디에도 "노래방"이 없다 | 장면 2·3 스크린샷 [`docs/evidence/scenes/`](docs/evidence/scenes/) |
 
 ## 문지기와 신호
@@ -31,7 +33,7 @@
 | 창문 위치(네 창문) | Vehicle SDK `Window` | 닫혀 있는가(기본 2% 이하) |
 | 기어 | AAOS `CarPropertyManager` `GEAR_SELECTION` | 주행 화면, 후진 때 잠시 복귀, 주행 단위 기록 |
 | 방향지시등 | Vehicle SDK `TurnSignal` | 잠시 복귀 |
-| 남은 시간 | NaviHelper `DestinationInfo.remainTime` | 마지막 곡 알림 |
+| 남은 시간 | NaviHelper `DestinationInfo.remainTime`(초) | 마지막 곡 알림(남은 시간 3~5분, 노래방일 때 "도착까지 N분, 한 곡 더 됩니다") |
 
 | 상태 | 가수 음량 | 들어가는 조건 |
 |---|---|---|
@@ -60,12 +62,12 @@
 
 - Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
 - 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있습니다(실차에서 반대로 동작하면 끕니다). 검증기록 G1.
-- 장면 7(마지막 곡)은 에뮬레이터 내비에서 남은 시간 3분대 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
+- 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~4분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
 - 빌드: JDK 17, Gradle 8.10.2(래퍼), AGP 8.7.3, Kotlin 2.0.21, compileSdk 34, minSdk 28.
 
 ## APK
 
-`apk/Graphite_Sichimi_release.apk` (release 빌드)
+`apk/Graphite_Sichimi_release.apk` (release 빌드, 66MB). 이 APK로 장면 1~8을 에뮬레이터에서 확인했습니다([검증기록](docs/검증기록.md)의 release 절).
 
 직접 빌드하려면:
 

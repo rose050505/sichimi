@@ -3,13 +3,15 @@ package app.sichimi.gate
 /**
  * 마지막 곡 알림(설계 2순위, 장면 7). 내비 남은 시간이 "한 곡 더" 구간에 들어오면 한 줄을 한 번 말한다.
  *
+ * - 구간은 3분 이상 5분 미만(한 곡이 3~4분이라 한 곡 더 부를 수 있는 남은 시간). 에뮬레이터 내비의 남은 시간은 분 단위라
+ *   같은 목적지도 3분이나 4분으로 나온다(검증기록 G4).
  * - 혼자만의 노래방([GateState.KARAOKE])일 때만 말한다. 동승자가 있을 때 앱이 먼저 말을 꺼내지 않는다(설계 1절 원칙 2).
  * - 한 경로에 한 번만 말한다. 경로가 없어지면(안내 종료, 도착, 취소) 다시 말할 수 있다.
  * - 구간 밖이거나 노래방이 아니면 말하지 않고 기다린다. 구간 안에 있는 동안 노래방이 되면 그때 말한다.
  */
 class LastSongCue(
     private val windowFromSec: Int = 180,
-    private val windowUntilSec: Int = 240,
+    private val windowUntilSec: Int = 300,
 ) {
     private var spoken = false
 

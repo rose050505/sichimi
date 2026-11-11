@@ -1,0 +1,22 @@
+--------- beginning of main
+11-11 10:44:52.221 I/SC.Gate (13330): 주행 시작 id=1
+11-11 10:44:58.063 I/SC.Gate (13330): 상태 NORMAL -> ARMING
+11-11 10:45:03.064 I/SC.Gate (13330): 상태 ARMING -> KARAOKE
+11-11 10:45:03.064 I/SC.Gate (13330): 가수 음량 -> 0.2 (600ms) seq=1
+11-11 10:45:05.349 I/SC.Gate (13330): 상태 KARAOKE -> NORMAL
+11-11 10:45:05.349 I/SC.Gate (13330): 가수 음량 -> 1.0 (120ms) seq=2
+11-11 10:45:05.368 I/SC.Gate (13330): 들킬 뻔 cause=DOOR reactionMs=250 song=01-arirang pos=7071
+11-11 10:45:08.528 I/SC.Gate (13330): 주행 끝 id=1 solo=2285ms 곡=0 들킬뻔=1
+11-11 10:45:13.406 I/SC.Gate (13330): 상태 NORMAL -> ARMING
+11-11 10:45:13.561 I/SC.Gate (13330): 상태 ARMING -> NORMAL
+11-11 10:45:13.714 I/SC.Gate (13330): 상태 NORMAL -> ARMING
+11-11 10:45:13.866 I/SC.Gate (13330): 주행 시작 id=2
+11-11 10:45:21.714 I/SC.Gate (13330): 상태 ARMING -> KARAOKE
+11-11 10:45:21.714 I/SC.Gate (13330): 가수 음량 -> 0.2 (600ms) seq=3
+11-11 10:45:22.024 I/SC.Gate (13330): 상태 KARAOKE -> NORMAL
+11-11 10:45:22.024 I/SC.Gate (13330): 가수 음량 -> 1.0 (120ms) seq=4
+11-11 10:45:22.047 I/SC.Gate (13330): 들킬 뻔 cause=WINDOW reactionMs=254 song=01-arirang pos=23739
+11-11 10:45:22.837 I/SC.Gate (13330): 상태 NORMAL -> ARMING
+11-11 10:45:30.836 I/SC.Gate (13330): 상태 ARMING -> KARAOKE
+11-11 10:45:30.836 I/SC.Gate (13330): 가수 음량 -> 0.2 (600ms) seq=5
+11-11 10:45:43.038 I/SC.Gate (13330): 주행 끝 id=2 solo=12512ms 곡=1 들킬뻔=1
