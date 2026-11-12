@@ -1,0 +1,14 @@
+--------- beginning of main
+11-12 05:36:45.249 I/SC.Gate ( 8072): 상태 KARAOKE -> NORMAL
+11-12 05:36:45.249 I/SC.Gate ( 8072): 가수 음량 -> 1.0 (120ms) seq=4
+11-12 05:36:45.250 I/SC.Mascot( 8072): 시치미 SINGING -> HIDING (상태 NORMAL)
+11-12 05:36:45.275 I/SC.Gate ( 8072): 들킬 뻔 cause=DOOR reactionMs=241 song=01-arirang pos=67509 가사=다시 또 웃을 수 있게 기억해
+11-12 05:36:45.566 I/SC.Mascot( 8072): 시치미 HIDING -> AWAY (상태 NORMAL)
+11-12 05:36:58.812 I/SC.Gate ( 8072): 상태 NORMAL -> ARMING
+11-12 05:36:58.965 I/SC.Gate ( 8072): 상태 ARMING -> NORMAL
+11-12 05:36:59.117 I/SC.Gate ( 8072): 상태 NORMAL -> ARMING
+11-12 05:37:07.118 I/SC.Gate ( 8072): 상태 ARMING -> KARAOKE
+11-12 05:37:07.118 I/SC.Gate ( 8072): 가수 음량 -> 0.2 (600ms) seq=5
+11-12 05:37:07.118 I/SC.Mascot( 8072): 시치미 AWAY -> RELIEVED (상태 KARAOKE)
+11-12 05:37:07.119 I/SC.Gate ( 8072): 휴, 안 들켰다: 들킬 뻔 5 뒤 다시 노래방
+11-12 05:37:11.123 I/SC.Mascot( 8072): 시치미 RELIEVED -> SINGING (상태 KARAOKE)

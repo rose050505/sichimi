@@ -1,0 +1,8 @@
+--------- beginning of main
+11-12 05:31:17.261 I/SC.Gate (30437): 상태 KARAOKE -> NORMAL
+11-12 05:31:17.261 I/SC.Gate (30437): 가수 음량 -> 1.0 (120ms) seq=2
+11-12 05:31:17.301 I/SC.Gate (30437): 들킬 뻔 cause=DOOR reactionMs=254 song=01-arirang pos=11556 가사=null
+11-12 05:31:17.301 I/SC.Escape(30437): 이번 주 새 대피 기록: 01-arirang 254ms
+11-12 05:31:19.196 I/SC.Rank (30437): 익명 로그인 새로 함
+11-12 05:31:20.444 I/SC.Gate (30437): 상태 NORMAL -> ARMING
+11-12 05:31:21.124 I/SC.Rank (30437): 대피 기록 올림: 2026-W46 01-arirang 254ms DOOR
