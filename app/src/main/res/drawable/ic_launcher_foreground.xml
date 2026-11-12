@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 시치미 아이콘 앞면: 평범한 음악 앱처럼 보이는 음표 하나. 동승자가 볼 때도 노래방을 떠올리게 하지 않는다. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- 기둥 -->
+    <path android:fillColor="#F2F4F7" android:pathData="M58,30 L64,30 L64,68 L58,68 Z" />
+    <!-- 깃발 -->
+    <path android:fillColor="#F2F4F7" android:pathData="M64,30 C70,32 78,36 78,46 C78,50 76,53 74,55 C75,49 72,43 64,41 Z" />
+    <!-- 머리 -->
+    <path android:fillColor="#F2F4F7"
+        android:pathData="M61,68 C61,74.6 55.2,79 48.5,79 C42.9,79 39,75.6 39,71 C39,64.4 44.8,60 51.5,60 C57.1,60 61,63.4 61,68 Z" />
+</vector>

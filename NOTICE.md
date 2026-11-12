@@ -29,6 +29,12 @@
 | Gson (TextToSpeech SDK가 씀) | 2.10.1 | Apache License 2.0 |
 | JNA (`net.java.dev.jna`, Pleos SDK가 함께 가져옴) | 5.13.0 | Apache License 2.0 또는 LGPL 2.1 (이중 라이선스) |
 
+## 앱이 쓰는 외부 서비스
+
+| 서비스 | 쓰는 곳 | 보내는 것 |
+|---|---|---|
+| Google Firebase(Identity Toolkit 익명 로그인, Cloud Firestore), REST로 호출 | 전국 랭킹(설정에서 켰을 때만) | 익명 uid, 사용자가 정한 별명, 곡 id, 곡별 최고 점수, 시각 |
+
 ## 만들 때만 쓴 도구 (앱에 들어가지 않음)
 
 | 도구 | 쓰는 곳 | 라이선스 |
@@ -36,7 +42,7 @@
 | Demucs (htdemucs 모델) | 곡을 보컬과 반주로 나눔 | MIT License |
 | faster-whisper, Whisper 모델 | 나눈 보컬에서 가사 초안 받아쓰기 | MIT License |
 | PyTorch | Demucs 실행 | BSD-3-Clause |
-| librosa | 반주에서 박 찾기(박자 세기) | ISC License |
+| librosa | 반주에서 박 찾기(박자 세기), 원곡 보컬 음높이(노래 점수 기준) | ISC License |
 | NumPy, SciPy, soundfile | 박자 세기 트랙 만들기, 녹음 분석 | BSD-3-Clause |
 | MMS 정렬 모델(`MahmoudAshraf/mms-300m-1130-forced-aligner`, Meta MMS 기반) | 가사 줄 시각 맞춤(앱에는 시각 숫자만 들어감) | CC BY-NC 4.0 |
 | Hugging Face Transformers | 위 모델 실행 | Apache License 2.0 |

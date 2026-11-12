@@ -99,9 +99,11 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
             val dao = graph.db.dao()
             val trip = dao.trip(id) ?: return@let null
             val fastest = dao.fastestReaction(id)
+            val best = dao.bestSince(trip.startedAt)
             buildString {
                 append("오늘 ${trip.soloSongs}곡, 혼자 부른 시간 ${minutesText(trip.soloMs)}, 들킬 뻔한 순간 ${trip.exposures}번")
                 if (fastest != null) append("(가장 빠른 대피 ${secondsText(fastest)})")
+                if (best != null) append(", 최고 점수 ${best.best}점(${graph.songs.find(best.songId)?.title ?: best.songId})")
             }
         }
     }

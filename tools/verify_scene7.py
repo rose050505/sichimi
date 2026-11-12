@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""장면 7(설계 8절, 2순위): 혼자만의 노래방 중에 내비에 남은 시간 3분대 목적지를 넣으면
-"도착까지 3분, 한 곡 더 됩니다"를 TTS로 한 번 말한다.
+"""장면 7(설계 8절, 2순위): 혼자만의 노래방 중에 내비에 남은 시간 3~5분 목적지를 넣으면
+"도착까지 N분, 한 곡 더 됩니다"를 TTS로 한 번 말한다(같은 목적지가 3·4·5분으로 바뀌어 나온다).
 
 차 신호는 가상 콘솔 HTTP로, 목적지는 에뮬레이터 내비 화면을 사람이 누르듯 탭해서 넣는다(앱 안 가짜 입력 없음).
 목적지: 내비 검색 → ("최근" 목록, 없으면 음식점 분류) → "탐앤탐스 세종연구소입구점"(Pleos Connect Emulator 2.1.0 기본 위치에서 1.0km, 3분).
@@ -142,8 +142,8 @@ def main():
     vs.shot("s7_navi_route")
     log = tts_log()
     req = re.findall(r"말하기 요청: (.+)", log)
-    row("7b", "노래방 + 남은 시간 3~4분대", "'도착까지 N분, 한 곡 더 됩니다'를 한 번 말함",
-        said is not None and len(req) == 1 and re.fullmatch(r"도착까지 [34]분, 한 곡 더 됩니다", req[0]) is not None,
+    row("7b", "노래방 + 남은 시간 3~5분", "'도착까지 N분, 한 곡 더 됩니다'를 한 번 말함",
+        said is not None and len(req) == 1 and re.fullmatch(r"도착까지 [345]분, 한 곡 더 됩니다", req[0]) is not None,
         (f"요청 {len(req)}번: {req[-1] if req else ''}, 목적지 넣고 {said:.1f}초 뒤 말하기 끝") if said is not None else "말하기 끝 없음")
     time.sleep(max(0, 20 - (time.time() - t_rec)))
     rec.terminate()

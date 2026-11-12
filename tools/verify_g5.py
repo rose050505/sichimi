@@ -59,7 +59,10 @@ def set_switch(title, on):
     checked, x1, y1, x2, y2 = min(sw, key=lambda q: abs((int(q[2]) + int(q[4])) // 2 - y))
     if (checked == "true") != on:
         sh("adb", "shell", "input", "tap", str((int(x1) + int(x2)) // 2), str((int(y1) + int(y2)) // 2))
-        time.sleep(1.5)
+        time.sleep(2)
+        # 처음 켤 때 시스템이 마이크 권한을 묻는다(사람이 누르는 것과 같은 버튼을 누른다)
+        if v.tap_text("앱 사용 중에만 허용"):
+            time.sleep(1.5)
 
 
 def main():

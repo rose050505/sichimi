@@ -106,6 +106,8 @@ interface RecordDao {
             "FROM SongScore s WHERE s.at = (SELECT MAX(at) FROM SongScore l WHERE l.songId = s.songId) ORDER BY s.at DESC"
     )
     fun scoreRows(): Flow<List<SongScoreRow>>
+    @Query("SELECT songId, score AS best FROM SongScore WHERE at >= :from AND finished = 1 ORDER BY score DESC, at ASC LIMIT 1")
+    suspend fun bestSince(from: Long): BestScore?
     @Query("SELECT songId, MAX(score) AS best FROM SongScore WHERE finished = 1 GROUP BY songId")
     suspend fun bestScores(): List<BestScore>
     @Query("DELETE FROM SongScore") suspend fun clearScores()

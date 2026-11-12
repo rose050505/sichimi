@@ -14,12 +14,16 @@ class LastSongCueTest {
 
     @Test fun `구간 밖에서는 말하지 않는다`() {
         assertNull(cue.update(600, GateState.KARAOKE))
-        assertNull(cue.update(300, GateState.KARAOKE))
+        assertNull(cue.update(301, GateState.KARAOKE))
         assertNull(cue.update(179, GateState.KARAOKE))
     }
 
     @Test fun `4분대도 한 곡 더 구간이다`() {
         assertEquals("도착까지 4분, 한 곡 더 됩니다", cue.update(240, GateState.KARAOKE))
+    }
+
+    @Test fun `딱 5분도 한 곡 더 구간이다`() {
+        assertEquals("도착까지 5분, 한 곡 더 됩니다", cue.update(300, GateState.KARAOKE))
     }
 
     @Test fun `남은 시간이 줄어 구간에 들어오면 그때 말한다`() {

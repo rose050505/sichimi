@@ -16,12 +16,23 @@
 
 장면 전체(1~8)의 콘솔 조작 순서는 [docs/시연순서.md](docs/시연순서.md)에 있습니다.
 
+## 노래 점수와 전국 랭킹
+
+혼자만의 노래방에서는 노래방 기계처럼 100점 만점 점수를 매길 수 있습니다(설정 「노래 점수(마이크)」, 기본 끔, 켤 때 마이크 권한을 묻습니다).
+
+- 마이크는 **혼자만의 노래방이고 재생 중일 때만** 켭니다. 동승자가 타거나 문이 열리면 바로 끕니다. 소리는 저장하지 않고 20ms마다 음높이 숫자만 씁니다.
+- 원곡 보컬 스템에서 미리 뽑은 음높이 흐름(`songs/<id>/pitch.u8`)과 같은 순간의 내 음높이를 비교합니다. 옥타브는 따지지 않고(남녀 키 차이), 박자는 앞뒤 0.2초까지 봐 줍니다.
+- 운전 중 화면에는 점수를 띄우지 않습니다. 곡이 끝나면 음성으로 한 줄("○○, 92점. 최고 기록이에요")만 말합니다.
+- 주차하면 「점수」 탭에서 **지난번의 나와 대결**(이번 점수와 지난 최고 기록), 곡별 내 최고 점수, **전국 랭킹**(곡별 위 10명과 내 순위)을 봅니다. 혼자가 아니면 이 탭은 보이지 않습니다.
+- 전국 랭킹은 설정 「전국 랭킹에 올리기」를 켰을 때만 별명과 곡별 최고 점수를 보냅니다(Firebase Firestore, 익명 로그인). 마이크 소리, 차 신호, 주행 기록은 보내지 않습니다.
+- 확인: 가상 마이크에 원곡 보컬을 넣으면 93점, 다른 곡 보컬은 21점, 끝까지 85점과 음성 안내(검증기록 G5).
+
 ## 심사 항목별로 볼 곳
 
 | 항목 | 이 앱에서 | 증거 |
 |---|---|---|
 | 차량특화성 | 좌석 착석·문·창문·기어·방향지시등 신호로 "혼자이고 닫힌 차"를 판정하는 문지기(상태 기계). 휴대폰에서는 알 수 없는 차 안 상황에만 열린다 | 아래 [문지기와 신호](#문지기와-신호), 상태 기계 [`gate/`](gate/src/main/kotlin/app/sichimi/gate/PrivacyGate.kt) |
-| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션 | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G4와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 상태 기계 단위 테스트 66개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
+| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점 단위 테스트 77개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
 | 창의성 | 노래방을 사용자가 켜지 않는다. 동승자가 타거나 문·창문이 열리면 앱이 먼저 시치미를 뗀다. 혼자가 아닐 때는 화면 어디에도 "노래방"이 없다 | 장면 2·3 스크린샷 [`docs/evidence/scenes/`](docs/evidence/scenes/) |
 
 ## 문지기와 신호
@@ -56,19 +67,22 @@
 | NaviHelper 3.0.5 | `initialize`, `addListener`, `getDestinationInfo`, `onDestinationInfo`, `onDrivingInfo`, `onRouteCancelled` | [`navi/NaviRemaining.kt`](app/src/main/java/app/sichimi/navi/NaviRemaining.kt) |
 | TextToSpeech 3.3.1 | `TextToSpeech(context, Mode.ON_DEVICE)`, `initialize`, `setLocale`, `speak` | [`audio/Announcer.kt`](app/src/main/java/app/sichimi/audio/Announcer.kt) |
 | Media3 1.4.1 | `MediaLibraryService`, `MediaLibrarySession`(검색·미디어 ID 재생), ExoPlayer + 스템 믹서 `AudioProcessor` | [`audio/PlaybackService.kt`](app/src/main/java/app/sichimi/audio/PlaybackService.kt), [`audio/StemMixProcessor.kt`](app/src/main/java/app/sichimi/audio/StemMixProcessor.kt) |
+| Android 마이크 | `AudioRecord`(16kHz 모노, `VOICE_RECOGNITION`), YIN 음높이 | [`audio/MicPitch.kt`](app/src/main/java/app/sichimi/audio/MicPitch.kt), [`core/SingCoach.kt`](app/src/main/java/app/sichimi/core/SingCoach.kt), [`gate/SingScore.kt`](gate/src/main/kotlin/app/sichimi/gate/SingScore.kt) |
+| Firebase(REST) | Identity Toolkit `accounts:signUp`(익명), Firestore `documents`·`runQuery`. Pleos 차에는 Google Play 서비스가 없어 SDK 대신 REST | [`rank/RankingClient.kt`](app/src/main/java/app/sichimi/rank/RankingClient.kt), 보안 규칙 [`docs/firestore.rules`](docs/firestore.rules) |
 
-권한: `pleos.car.permission.CAR_SEATS`, `CAR_DOORS`, `CAR_WINDOWS`, `CAR_LIGHTS`, `NAVI_ROUTE`, `TTS_SERVICE`, `android.car.permission.CAR_POWERTRAIN`. 제어(쓰기) API는 쓰지 않습니다.
+권한: `pleos.car.permission.CAR_SEATS`, `CAR_DOORS`, `CAR_WINDOWS`, `CAR_LIGHTS`, `NAVI_ROUTE`, `TTS_SERVICE`, `android.car.permission.CAR_POWERTRAIN`, `android.permission.RECORD_AUDIO`(노래 점수를 켤 때 묻는다), `INTERNET`(전국 랭킹). 차 제어(쓰기) API는 쓰지 않습니다.
 
 ## 테스트 환경과 필요한 설정
 
 - Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
 - 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있습니다(실차에서 반대로 동작하면 끕니다). 검증기록 G1.
-- 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~4분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
+- 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~5분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
+- 노래 점수는 에뮬레이터의 마이크 입력을 씁니다(확장 컨트롤 → 마이크 → "Virtual microphone uses host audio input", 또는 `adb emu avd hostmicon`). 전국 랭킹은 `app/google-services.json`(Firebase 프로젝트, 저장소에 넣지 않음)을 넣고 빌드해야 켜집니다. 없으면 랭킹 칸만 "연결 안 됨"이고 나머지는 그대로입니다.
 - 빌드: JDK 17, Gradle 8.10.2(래퍼), AGP 8.7.3, Kotlin 2.0.21, compileSdk 34, minSdk 28.
 
 ## APK
 
-`apk/Graphite_Sichimi_release.apk` (release 빌드, 62MB). 이 APK로 장면 1~6, 8과 박자 세기를 에뮬레이터에서 확인했습니다. 장면 7은 바로 앞 release APK로 확인했고, 이번에는 에뮬레이터 내비가 열리지 않아 다시 돌리지 못했습니다([검증기록](docs/검증기록.md)의 release 절과 박자 세기 절).
+`apk/Graphite_Sichimi_release.apk` (release 빌드, 62MB). 이 APK로 장면 1~6, 8, 박자 세기, 노래 점수(가상 마이크)를 에뮬레이터에서 확인했습니다. 장면 7은 바로 앞 빌드(아이콘과 요약 글만 다름)로 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
 
 직접 빌드하려면:
 
@@ -86,11 +100,11 @@ release 서명은 저장소 밖의 키를 `keystore.properties`(저장소에 넣
 ## 구조
 
 ```
-gate/   순수 Kotlin. 문지기 상태 기계(PrivacyGate), 혼자 부른 시간 장부(SoloLedger), 마지막 곡 규칙(LastSongCue), 박자 세기 규칙(CountIn)과 단위 테스트
-app/    Android 앱. 차 신호, 문지기 연결, 스템 믹서, Media3 재생 서비스, Room 기록, Compose 화면, 내비·TTS
-tools/  가상 콘솔 조작(console.py), 관문·장면 검증 스크립트, 스템 묶기, 가사 초안·시각 맞춤, 박자 세기 트랙
+gate/   순수 Kotlin. 문지기 상태 기계(PrivacyGate), 혼자 부른 시간 장부(SoloLedger), 마지막 곡 규칙(LastSongCue), 박자 세기 규칙(CountIn), 노래 점수(SingScore, YIN)와 단위 테스트
+app/    Android 앱. 차 신호, 문지기 연결, 스템 믹서, Media3 재생 서비스, Room 기록, Compose 화면, 내비·TTS, 마이크 채점, 전국 랭킹(REST)
+tools/  가상 콘솔 조작(console.py), 관문·장면 검증 스크립트, 스템 묶기, 가사 초안·시각 맞춤, 박자 세기 트랙, 채점 기준 음높이
 docs/   검증기록과 증거(스크린샷, 로그)
 ```
 
-- 기록은 기기 안 Room DB에만 둡니다. 네트워크로 보내는 것이 없고 마이크를 쓰지 않습니다.
+- 기록은 기기 안 Room DB에만 둡니다. 밖으로 보내는 것은 사용자가 「전국 랭킹에 올리기」를 켰을 때의 별명과 곡별 최고 점수뿐입니다. 마이크는 노래 점수를 켰을 때 혼자만의 노래방에서만 쓰고, 소리는 저장하지 않습니다.
 - 개발 과정에서 생성형 AI(Claude)를 썼습니다.
