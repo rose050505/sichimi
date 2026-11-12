@@ -1,0 +1,163 @@
+package app.sichimi.core
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import app.sichimi.audio.Announcer
+import app.sichimi.audio.MicPitch
+import app.sichimi.data.RecordDao
+import app.sichimi.data.SongScore
+import app.sichimi.gate.GateState
+import app.sichimi.gate.PitchRef
+import app.sichimi.gate.SingScore
+import app.sichimi.settings.SettingsStore
+import app.sichimi.songs.SongSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+
+/** 방금 끝난 곡의 점수. 주차 화면의 "지난번의 나와 대결"에 쓴다. */
+data class ScoreResult(
+    val songId: String,
+    val title: String,
+    val score: Int,
+    val finished: Boolean,
+    /** 이번 곡 전의 내 최고 점수(완주한 곡만). 처음이면 null. */
+    val previousBest: Int?,
+)
+
+/**
+ * 노래 점수. 혼자만의 노래방이고, 재생 중이고, 설정에서 켰고, 마이크 권한이 있을 때만 마이크를 켠다.
+ *
+ * - 곡마다 [SingScore]를 하나 만들고, 마이크 음을 그 순간의 곡 위치와 맞춰 넣는다.
+ * - 곡이 바뀌거나 끝나면 점수를 저장하고, 그때 혼자만의 노래방이면 한 줄을 말한다(운전 중 화면에는 점수를 띄우지 않는다).
+ * - 곡 위치: 재생 서비스의 위치를 메인 스레드에서 50ms마다 읽어 두고, 마이크 스레드는 그 뒤 흐른 시간만큼 더한다.
+ */
+class SingCoach(
+    private val context: Context,
+    private val scope: CoroutineScope,
+    private val controller: GateController,
+    private val settings: SettingsStore,
+    private val songs: SongSource,
+    private val dao: RecordDao,
+    private val announcer: Announcer,
+    private val positionMs: () -> Long,
+) {
+    private val main = Handler(Looper.getMainLooper())
+    private val mic = MicPitch(::onMicFrame)
+
+    private class Clock(val atNanos: Long, val posMs: Long, val playing: Boolean)
+    @Volatile private var clock = Clock(0, 0, false)
+
+    /** probes: 마이크 지연을 여러 값으로 가정한 점수(검증용 로그. 실제 점수는 [score]). */
+    private class Current(val itemKey: String, val songId: String, val score: SingScore, val durationMs: Long,
+                          val probes: List<Pair<Long, SingScore>>)
+    @Volatile private var current: Current? = null
+    private var lastKey: String? = null // 메인 스레드
+    private var lastPos = 0L // 메인 스레드
+    private val lock = Any()
+
+    private val _last = MutableStateFlow<ScoreResult?>(null)
+    val lastResult: StateFlow<ScoreResult?> = _last.asStateFlow()
+
+    private val ticker = object : Runnable {
+        override fun run() {
+            val p = controller.player.value
+            clock = Clock(System.nanoTime(), positionMs(), p.isPlaying)
+            current?.let { c ->
+                if (!p.isPlaying && clock.posMs >= c.durationMs - 1_500) finish("곡 끝")
+                else if (p.itemKey == c.itemKey && clock.posMs < lastPos - 3_000) { finish("앞으로 되감음"); begin(c.itemKey, c.songId) }
+            }
+            lastPos = clock.posMs
+            main.postDelayed(this, 50)
+        }
+    }
+
+    fun hasPermission() =
+        context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    fun start() {
+        main.post(ticker)
+        scope.launch {
+            combine(controller.ui, controller.player, settings.state) { ui, p, s -> Triple(ui.state, p, s.scoring) }
+                .collect { (state, p, on) ->
+                    // 곡이 바뀌면 앞 곡을 마무리하고 새로 센다
+                    val key = p.itemKey
+                    if (key != lastKey) {
+                        finish("곡 바뀜")
+                        lastKey = key
+                        if (key != null && p.songId != null) begin(key, p.songId)
+                    }
+                    val want = on && state == GateState.KARAOKE && p.isPlaying && current != null && hasPermission()
+                    if (want && !mic.isRunning) mic.start() else if (!want && mic.isRunning) mic.stop()
+                }
+        }
+    }
+
+    private fun begin(itemKey: String, songId: String) {
+        val song = songs.find(songId) ?: return
+        val ref = songs.pitch(song) ?: return
+        val pr = PitchRef(ref)
+        lastPos = 0L
+        synchronized(lock) {
+            current = Current(itemKey, songId, SingScore(pr), song.durationMs, LAG_PROBES.map { it to SingScore(pr) })
+        }
+    }
+
+    /** 마이크 스레드. */
+    private fun onMicFrame(atNanos: Long, midi: Float?, heard: Boolean) {
+        if (!heard) return // 시스템이 마이크를 막았거나 입력이 없다: 채점하지 않는다
+        val c = clock
+        if (!c.playing) return
+        val songMs = c.posMs + (atNanos - c.atNanos) / 1_000_000 - MIC_LAG_MS
+        synchronized(lock) {
+            val cur = current ?: return
+            cur.score.feed(songMs, midi)
+            for ((lag, s) in cur.probes) s.feed(songMs + MIC_LAG_MS - lag, midi)
+        }
+    }
+
+    private fun finish(why: String) {
+        val c = synchronized(lock) { current.also { current = null } } ?: return
+        val score = c.score.score ?: return
+        if (c.score.judgedFrames < MIN_JUDGED) return // 음표 5초도 안 들었으면 점수로 치지 않는다
+        val finished = c.score.finished
+        val title = songs.find(c.songId)?.title ?: c.songId
+        val karaokeNow = controller.ui.value.state == GateState.KARAOKE
+        Log.i(TAG, "점수 $why: ${c.songId} ${score}점, 채점 ${c.score.judgedFrames}프레임(곡 음표의 ${(c.score.coverage * 100).toInt()}%), 완주=$finished")
+        Log.i(TAG, "지연 가정별 점수: " + c.probes.joinToString(" ") { (lag, s) -> "${lag}ms=${s.score}" })
+        scope.launch {
+            val best = dao.bestScore(c.songId)
+            dao.insertScore(SongScore(songId = c.songId, at = System.currentTimeMillis(), score = score,
+                coverage = c.score.coverage, finished = finished))
+            _last.value = ScoreResult(c.songId, title, score, finished, best)
+            if (karaokeNow && finished) announcer.say(line(title, score, best))
+        }
+    }
+
+    companion object {
+        const val TAG = "SC.Score"
+        /** 이만큼(음표 프레임, 20ms) 넘게 채점해야 점수를 남긴다. 250 = 5초. */
+        const val MIN_JUDGED = 250
+        private val LAG_PROBES = (-100L..400L step 50L).toList()
+
+        /**
+         * 마이크 소리가 곡 위치보다 늦게 도착하는 만큼(ms). 사람은 들리는 반주에 맞춰 부르고, 재생 위치는 들리는 소리 기준이므로
+         * 남는 것은 마이크 경로의 지연이다. 에뮬레이터에서 잰 값(검증기록 G5). 박자 여유(200ms)가 나머지를 덮는다.
+         */
+        const val MIC_LAG_MS = 100L
+
+        fun line(title: String, score: Int, previousBest: Int?): String = when {
+            previousBest == null -> "$title, ${score}점. 첫 기록이에요"
+            score > previousBest -> "$title, ${score}점. 최고 기록이에요"
+            score == previousBest -> "$title, ${score}점. 최고 기록과 같아요"
+            else -> "$title, ${score}점. 최고 기록까지 ${previousBest - score}점"
+        }
+    }
+}

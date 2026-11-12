@@ -148,7 +148,7 @@ fun DrivingScreen(state: GateState, player: PlayerUi, onPrev: () -> Unit, onPlay
 
 // ---------- 주차 화면 ----------
 
-enum class ParkedTab(val label: String) { PLAYER("재생·가사"), QUEUE("예약 목록"), RECORDS("내 기록"), SETTINGS("설정") }
+enum class ParkedTab(val label: String) { PLAYER("재생·가사"), QUEUE("예약 목록"), RECORDS("내 기록"), SCORES("점수"), SETTINGS("설정") }
 
 @Composable
 fun ParkedScreen(
@@ -167,9 +167,10 @@ fun ParkedScreen(
     onNext: () -> Unit,
     queueContent: @Composable () -> Unit,
     recordsContent: @Composable () -> Unit,
+    scoresContent: @Composable () -> Unit,
     settingsContent: @Composable () -> Unit,
 ) {
-    // 혼자가 아니면 내 기록과 설정 탭 자체를 숨긴다.
+    // 혼자가 아니면 내 기록, 점수, 설정 탭 자체를 숨긴다.
     val tabs = if (solo) ParkedTab.entries else listOf(ParkedTab.PLAYER, ParkedTab.QUEUE)
     val current = if (tab in tabs) tab else ParkedTab.PLAYER
     Column(Modifier.fillMaxSize().background(Palette.bg).padding(32.dp)) {
@@ -201,6 +202,7 @@ fun ParkedScreen(
                 ParkedTab.PLAYER -> PlayerTab(state, player, lyrics, credit, positionMs, onPrev, onPlayPause, onNext)
                 ParkedTab.QUEUE -> queueContent()
                 ParkedTab.RECORDS -> recordsContent()
+                ParkedTab.SCORES -> scoresContent()
                 ParkedTab.SETTINGS -> settingsContent()
             }
         }
@@ -367,6 +369,59 @@ fun RecordsTab(r: MonthRecords) {
     }
 }
 
+// ---------- 점수 ----------
+
+data class ScoreRowUi(val title: String, val best: Int?, val last: Int, val times: Int)
+
+data class LastScoreUi(val title: String, val score: Int, val finished: Boolean, val previousBest: Int?)
+
+@Composable
+fun ScoresTab(scoring: Boolean, last: LastScoreUi?, rows: List<ScoreRowUi>) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (!scoring) {
+            Text("설정에서 「노래 점수」를 켜면 혼자만의 노래방에서 부른 노래에 점수를 매깁니다.", color = Palette.sub, fontSize = BODY)
+        }
+        if (last != null) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Palette.surfaceHi).padding(28.dp)) {
+                Text("방금 부른 곡 · 지난번의 나와 대결", color = Palette.sub, fontSize = 26.sp)
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(last.title, color = Palette.text, fontSize = 34.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Spacer(Modifier.width(24.dp))
+                    Text("${last.score}점", color = Palette.accent, fontSize = 64.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(battleLine(last), color = Palette.text, fontSize = 28.sp)
+            }
+        }
+        if (rows.isEmpty()) {
+            if (scoring) Text("아직 점수가 없습니다. 혼자만의 노래방에서 한 곡을 끝까지 불러 보세요.", color = Palette.sub, fontSize = BODY)
+        } else {
+            Text("곡별 내 점수", color = Palette.sub, fontSize = 26.sp)
+            rows.forEach { r ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.surface).padding(horizontal = 28.dp, vertical = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(r.title, color = Palette.text, fontSize = BODY, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text("최고 ${r.best?.let { "${it}점" } ?: "—"}", color = Palette.accent, fontSize = BODY, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(32.dp))
+                    Text("최근 ${r.last}점 · ${r.times}번", color = Palette.sub, fontSize = BODY)
+                }
+            }
+        }
+    }
+}
+
+private fun battleLine(l: LastScoreUi): String = when {
+    !l.finished -> "곡의 절반 넘게 불러야 최고 기록에 들어갑니다"
+    l.previousBest == null -> "첫 기록입니다. 다음엔 이 점수를 넘어 보세요"
+    l.score > l.previousBest -> "지난 최고 ${l.previousBest}점을 ${l.score - l.previousBest}점 넘었습니다. 새 최고 기록!"
+    l.score == l.previousBest -> "지난 최고 ${l.previousBest}점과 같습니다"
+    else -> "지난 최고 ${l.previousBest}점까지 ${l.previousBest - l.score}점 모자랍니다"
+}
+
 // ---------- 설정 ----------
 
 data class SettingsUi(
@@ -376,6 +431,7 @@ data class SettingsUi(
     val windowThresholdPct: Int,
     val safetyReturn: Boolean,
     val countIn: Boolean,
+    val scoring: Boolean,
     val invertSeat: Boolean,
     val rearSeatsUnreadable: Boolean,
     val passengerUnreadable: Boolean,
@@ -390,6 +446,7 @@ fun SettingsTab(
     onWindow: (Int) -> Unit,
     onSafety: (Boolean) -> Unit,
     onCountIn: (Boolean) -> Unit,
+    onScoring: (Boolean) -> Unit,
     onInvert: (Boolean) -> Unit,
     onClear: () -> Unit,
 ) {
@@ -401,6 +458,7 @@ fun SettingsTab(
         SettingChoice("창문 기준(이보다 많이 열리면 닫힘)", listOf(2, 10, 20), s.windowThresholdPct, { "$it%" }, onWindow)
         SettingSwitch("안전 장치", "후진하거나 방향지시등을 켜면 가수 목소리를 잠깐 돌려놓습니다", s.safetyReturn, onSafety)
         SettingSwitch("첫 소절 박자 세기", "노래방일 때 첫 소절 바로 앞에서 드럼 스틱으로 탁, 탁, 탁, 탁 박자를 세어 줍니다", s.countIn, onCountIn)
+        SettingSwitch("노래 점수(마이크)", "혼자만의 노래방일 때만 마이크로 음높이를 듣고 100점 만점으로 매깁니다. 소리는 저장하지 않습니다", s.scoring, onScoring)
         SettingSwitch("착석 값 뒤집기", "Pleos Connect Emulator 2.1.0은 착석 값이 반대로 옵니다. 실제 차에서 반대로 동작하면 끄세요", s.invertSeat, onInvert)
         if (s.passengerUnreadable) Text("이 차는 동승석 착석을 읽을 수 없어 이 기능이 열리지 않습니다", color = Palette.danger, fontSize = BODY)
         if (s.rearSeatsUnreadable) Text("이 차는 뒷좌석 착석을 읽을 수 없어 뒷좌석은 비어 있다고 봅니다", color = Palette.sub, fontSize = BODY)
@@ -412,7 +470,11 @@ fun SettingsTab(
                 PillButton("취소", { confirmClear = false })
             }
         }
-        Text("기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. 마이크를 쓰지 않습니다.", color = Palette.dim, fontSize = 24.sp)
+        Text(
+            if (s.scoring) "기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. 마이크는 노래 점수를 켰을 때, 혼자만의 노래방에서만 씁니다."
+            else "기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. 마이크를 쓰지 않습니다.",
+            color = Palette.dim, fontSize = 24.sp,
+        )
     }
 }
 

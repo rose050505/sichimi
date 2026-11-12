@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 쓰는 권한만 선언한다. 모두 조회(get·구독) 권한이다. -->
+    <!-- 쓰는 권한만 선언한다. 차 신호는 모두 조회(get·구독) 권한이다. -->
     <uses-permission android:name="pleos.car.permission.CAR_SEATS" />
     <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
     <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" />
@@ -9,6 +9,8 @@
     <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+    <!-- 노래 점수: 혼자만의 노래방일 때만, 사용자가 설정에서 켠 뒤에 쓴다. 소리는 저장하지 않는다. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 

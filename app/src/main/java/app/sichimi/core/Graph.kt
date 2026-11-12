@@ -32,6 +32,7 @@ class Graph(app: Application) {
     @Volatile var positionProvider: () -> Long = { 0L }
 
     val controller = GateController(app, scope, signals, settings, mixer, db.dao()) { positionProvider() }
+    val coach = SingCoach(app, scope, controller, settings, songs, db.dao(), announcer) { positionProvider() }
 
     fun start() {
         signals.start()
@@ -39,6 +40,7 @@ class Graph(app: Application) {
         controller.start()
         navi.start()
         announcer.start()
+        coach.start()
         // 마지막 곡: 내비 남은 시간이 3분대이고 혼자만의 노래방이면 한 줄을 한 번 말한다.
         combine(navi.remainSec, controller.ui) { remain, ui -> lastSong.update(remain, ui.state) }
             .onEach { line -> if (line != null) announcer.say(line) }

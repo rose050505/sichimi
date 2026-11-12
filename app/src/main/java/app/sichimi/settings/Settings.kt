@@ -20,6 +20,8 @@ data class AppSettings(
     val invertSeatOccupancy: Boolean = true,
     /** 첫 소절 앞 박자 세기(카운트인). 노래방일 때만 들린다. */
     val countIn: Boolean = true,
+    /** 노래 점수(마이크). 혼자만의 노래방일 때만 마이크를 켠다. 동의를 받고 켜므로 기본은 끔. */
+    val scoring: Boolean = false,
 ) {
     fun toGateConfig() = GateConfig(
         enabled = enabled,
@@ -44,6 +46,7 @@ class SettingsStore(context: Context) {
         safetyReturn = prefs.getBoolean("safetyReturn", true),
         invertSeatOccupancy = prefs.getBoolean("invertSeatOccupancy", true),
         countIn = prefs.getBoolean("countIn", true),
+        scoring = prefs.getBoolean("scoring", false),
     )
 
     fun update(change: (AppSettings) -> AppSettings) {
@@ -56,6 +59,7 @@ class SettingsStore(context: Context) {
             .putBoolean("safetyReturn", next.safetyReturn)
             .putBoolean("invertSeatOccupancy", next.invertSeatOccupancy)
             .putBoolean("countIn", next.countIn)
+            .putBoolean("scoring", next.scoring)
             .apply()
         _state.value = next
     }

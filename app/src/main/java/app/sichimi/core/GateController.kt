@@ -109,7 +109,7 @@ class GateController(
 
     fun clearRecords() {
         ops.trySend {
-            dao.clearExposures(); dao.clearPlays(); dao.clearTrips()
+            dao.clearExposures(); dao.clearPlays(); dao.clearTrips(); dao.clearScores()
             currentTripId = null
             tripIdByStart.clear()
             playRowByKey.clear()

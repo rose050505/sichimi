@@ -1,6 +1,8 @@
 package app.sichimi
 
+import android.Manifest
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
@@ -25,7 +27,10 @@ import app.sichimi.ui.ParkedScreen
 import app.sichimi.ui.ParkedTab
 import app.sichimi.ui.PlayerConnection
 import app.sichimi.ui.QueueTab
+import app.sichimi.ui.LastScoreUi
 import app.sichimi.ui.RecordsTab
+import app.sichimi.ui.ScoreRowUi
+import app.sichimi.ui.ScoresTab
 import app.sichimi.ui.SettingsTab
 import app.sichimi.ui.SettingsUi
 import app.sichimi.ui.SongRow
@@ -38,11 +43,22 @@ class MainActivity : ComponentActivity() {
     private lateinit var graph: Graph
     private lateinit var connection: PlayerConnection
 
+    /** 노래 점수를 켤 때 마이크 권한을 묻는다. 허락하면 켠다. */
+    private val askMic = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) graph.settings.update { it.copy(scoring = true) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         graph = (application as SichimiApp).graph
         connection = PlayerConnection(this, graph.songs)
-        setContent { App(graph, connection) }
+        setContent { App(graph, connection, ::setScoring) }
+    }
+
+    private fun setScoring(on: Boolean) {
+        if (!on) graph.settings.update { it.copy(scoring = false) }
+        else if (graph.coach.hasPermission()) graph.settings.update { it.copy(scoring = true) }
+        else askMic.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     override fun onStart() {
@@ -57,7 +73,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun App(graph: Graph, connection: PlayerConnection) {
+private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean) -> Unit) {
     val gate by graph.controller.ui.collectAsStateWithLifecycle()
     val player by connection.state.collectAsStateWithLifecycle()
     val requiresDo by graph.restrictions.requiresDistractionOptimization.collectAsStateWithLifecycle()
@@ -111,6 +127,15 @@ private fun App(graph: Graph, connection: PlayerConnection) {
             )
         },
         recordsContent = { RecordsTab(monthRecords(graph)) },
+        scoresContent = {
+            val last by graph.coach.lastResult.collectAsStateWithLifecycle()
+            val rows by graph.db.dao().scoreRows().collectAsState(initial = emptyList())
+            ScoresTab(
+                scoring = settings.scoring,
+                last = last?.let { LastScoreUi(it.title, it.score, it.finished, it.previousBest) },
+                rows = rows.map { ScoreRowUi(graph.songs.find(it.songId)?.title ?: it.songId, it.best, it.last, it.times) },
+            )
+        },
         settingsContent = {
             SettingsTab(
                 SettingsUi(
@@ -120,6 +145,7 @@ private fun App(graph: Graph, connection: PlayerConnection) {
                     windowThresholdPct = settings.windowThresholdPct,
                     safetyReturn = settings.safetyReturn,
                     countIn = settings.countIn,
+                    scoring = settings.scoring,
                     invertSeat = settings.invertSeatOccupancy,
                     rearSeatsUnreadable = listOf(Zone.REAR_LEFT, Zone.REAR_RIGHT).any { gate.cabin.seats[it] == Reading.Unsupported },
                     passengerUnreadable = gate.cabin.seats[Zone.FRONT_RIGHT] == Reading.Unsupported,
@@ -130,6 +156,7 @@ private fun App(graph: Graph, connection: PlayerConnection) {
                 onWindow = { v -> graph.settings.update { it.copy(windowThresholdPct = v) } },
                 onSafety = { v -> graph.settings.update { it.copy(safetyReturn = v) } },
                 onCountIn = { v -> graph.settings.update { it.copy(countIn = v) } },
+                onScoring = setScoring,
                 onInvert = { v -> graph.settings.update { it.copy(invertSeatOccupancy = v) } },
                 onClear = graph.controller::clearRecords,
             )
