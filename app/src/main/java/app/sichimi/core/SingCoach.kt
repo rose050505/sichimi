@@ -86,6 +86,8 @@ class SingCoach(
 
     fun start() {
         main.post(ticker)
+        // 지난번에 올리지 못한 최고 점수(터널, 오프라인)가 있으면 다시 올린다. 서버 점수가 같거나 높으면 쓰지 않는다.
+        if (settings.state.value.rankUpload) uploadAllBests()
         scope.launch {
             combine(controller.ui, controller.player, settings.state) { ui, p, s -> Triple(ui.state, p, s.scoring) }
                 .collect { (state, p, on) ->

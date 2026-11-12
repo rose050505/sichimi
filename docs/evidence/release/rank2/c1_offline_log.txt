@@ -1,0 +1,4 @@
+--------- beginning of main
+11-11 22:13:41.143 I/SC.Score(32005): 점수 곡 바뀜: 01-arirang 84점, 채점 4852프레임(곡 음표의 95%), 완주=true
+11-11 22:13:41.143 I/SC.Score(32005): 지연 가정별 점수: -100ms=67 -50ms=70 0ms=70 50ms=74 100ms=84 150ms=85 200ms=77 250ms=71 300ms=70 350ms=69 400ms=63
+11-11 22:13:45.359 W/SC.Score(32005): 랭킹 올리기 실패: java.net.UnknownHostException: Unable to resolve host "identitytoolkit.googleapis.com": No address associated with hostname

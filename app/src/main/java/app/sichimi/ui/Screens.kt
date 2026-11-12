@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -562,20 +563,23 @@ fun SettingsTab(
 private fun NicknameRow(nickname: String, onSave: (String) -> Unit) {
     var editing by remember { mutableStateOf(false) }
     var text by remember(nickname) { mutableStateOf(nickname) }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.surface).padding(horizontal = 28.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("랭킹 별명", color = Palette.text, fontSize = BODY, modifier = Modifier.widthIn(min = 200.dp))
         if (!editing) {
-            Text(nickname, color = Palette.accent, fontSize = BODY, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(nickname, color = Palette.accent, fontSize = BODY, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f).clickable { editing = true })
             PillButton("바꾸기", { editing = true })
         } else {
             OutlinedTextField(
                 value = text, onValueChange = { text = it.take(12) }, singleLine = true,
                 textStyle = androidx.compose.ui.text.TextStyle(color = Palette.text, fontSize = BODY),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).focusRequester(focus),
             )
+            LaunchedEffect(Unit) { focus.requestFocus() }
             Spacer(Modifier.width(16.dp))
             PillButton("저장", { if (text.isNotBlank()) { onSave(text.trim()); editing = false } }, Palette.accent, Palette.bg)
         }

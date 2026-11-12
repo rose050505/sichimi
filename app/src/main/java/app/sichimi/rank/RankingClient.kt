@@ -64,7 +64,9 @@ class RankingClient(private val context: Context) {
 
     /** 한 곡의 랭킹을 읽는다(위 [limit]명 + 내 순위). */
     suspend fun ranking(songId: String, limit: Int = 10): SongRanking = io {
-        val (uid, token) = auth()
+        // 읽기는 공개다. 랭킹을 보기만 하는 사람은 익명 계정도 만들지 않는다(올린 적이 있을 때만 내 uid로 "나"를 표시).
+        val uid = prefs.getString("uid", null)
+        val token = if (uid != null) runCatching { auth().second }.getOrNull() else null
         val query = JSONObject().put("structuredQuery", JSONObject()
             .put("from", JSONArray().put(JSONObject().put("collectionId", "scores")))
             .put("orderBy", JSONArray().put(JSONObject().put("field", JSONObject().put("fieldPath", "score")).put("direction", "DESCENDING")))
