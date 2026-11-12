@@ -28,6 +28,7 @@ enum class Gear { PARK, REVERSE, NEUTRAL, DRIVE, UNKNOWN }
  * @property windows 창문별 열린 정도(0~100%).
  * @property turnSignalOn 방향지시등이 켜져 있는가.
  * @property playing 사용자가 재생한 곡이 지금 소리를 내고 있는가.
+ * @property arrivingSoon 내비 목적지에 곧 도착한다([ArrivalGuard]). 후진·방향지시등과 같은 안전 장치 입력.
  */
 data class CabinInput(
     val seats: Map<Zone, Reading<Boolean>>,
@@ -36,6 +37,7 @@ data class CabinInput(
     val gear: Gear,
     val turnSignalOn: Boolean,
     val playing: Boolean,
+    val arrivingSoon: Boolean = false,
 ) {
     companion object {
         /** 앱이 막 켜져 아무 신호도 받지 못한 상태. */

@@ -1,4 +1,4 @@
 --------- beginning of main
-11-12 06:43:03.497 I/SC.TakePlay( 3346): 녹음 듣기 시작: mine:01-arirang 곡 4292ms부터, 목소리 7292~196540ms
-11-12 06:43:03.500 I/SC.Player( 3346): playWhenReady=false reason=2
-11-12 06:43:03.500 I/SC.Player( 3346): 오디오 포커스 영구 손실 -> stop
+11-12 07:26:46.488 I/SC.TakePlay(30264): 녹음 듣기 시작: mine:01-arirang 곡 4308ms부터, 목소리 7308~196684ms
+11-12 07:26:46.489 I/SC.Player(30264): playWhenReady=false reason=2
+11-12 07:26:46.489 I/SC.Player(30264): 오디오 포커스 영구 손실 -> stop

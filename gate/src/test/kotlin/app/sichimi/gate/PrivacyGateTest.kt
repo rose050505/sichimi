@@ -394,6 +394,26 @@ class PrivacyGateTest {
         assertEquals(RETURN, gate.state)
     }
 
+    @Test fun `노래방에서 잠시 복귀로 - 내비 목적지에 곧 도착하면 가수를 올리고 기록은 남기지 않는다`() {
+        reachKaraoke()
+        val effects = feed(solo().copy(arrivingSoon = true))
+        assertEquals(RETURN, gate.state)
+        assertEquals(listOf(VocalRamp(1f, 200)), effects.ramps())
+        assertTrue(effects.exposures().isEmpty())
+    }
+
+    @Test fun `곧 도착이면 대기로 가지 않는다`() {
+        feed(solo().copy(arrivingSoon = true))
+        assertEquals(NORMAL, gate.state)
+    }
+
+    @Test fun `안전 장치를 끄면 곧 도착이어도 노래방이 유지된다`() {
+        gate.updateConfig(GateConfig(safetyReturn = false), now)
+        reachKaraoke()
+        feed(solo().copy(arrivingSoon = true))
+        assertEquals(KARAOKE, gate.state)
+    }
+
     @Test fun `안전 장치를 끄면 후진해도 노래방이 유지된다`() {
         gate.updateConfig(GateConfig(safetyReturn = false), now)
         reachKaraoke()

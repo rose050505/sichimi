@@ -1,6 +1,10 @@
 package app.sichimi.core
 
 import android.content.Context
+import kotlinx.coroutines.flow.collectLatest
+import app.sichimi.gate.Zone
+import app.sichimi.gate.SeatPolarity
+import app.sichimi.gate.ArrivalGuard
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -79,6 +83,8 @@ class GateController(
     private val lyricAt: (String, Long) -> String? = { _, _ -> null },
     /** 대피 시간을 잰 들킬 뻔이 기록될 때(대피 랭킹). */
     private val onEscape: (EscapeMoment) -> Unit = {},
+    /** 내비 목적지까지 남은 시간(초). 도착 직전 미리 시치미([ArrivalGuard]). */
+    private val remainSec: StateFlow<Int?> = MutableStateFlow(null),
 ) {
     private val gate = PrivacyGate(settings.state.value.toGateConfig())
     private val ledger = SoloLedger()
@@ -111,13 +117,27 @@ class GateController(
 
     private val tick = Runnable { apply(gate.tick(now())) }
 
+    /** 받은 남은 시간으로 센 「곧 도착」 시각이 지났는가(기어 조건은 입력을 만들 때 본다). */
+    private val arrivalDue = MutableStateFlow(false)
+
     fun start() {
         scope.launch { for (op in ops) runCatching { op() }.onFailure { Log.e(TAG, "기록 실패", it) } }
         // 재생 중인 곡도 내 기록에 보이도록 몇 초마다 진행 중 기록을 남긴다.
         scope.launch { while (true) { delay(3_000); envTick(lastWiper); ledger.currentPlay(wall())?.let(::savePlay) } }
+        // 도착 직전: 남은 시간을 받은 시각부터 (남은 시간 − 60초)를 센다. 새 값이 오면 다시 센다.
         scope.launch {
-            combine(signals.readings, settings.state, player) { r, s, p -> Triple(r, s, p) }
-                .collect { (r, s, p) -> onInputs(r, s, p) }
+            remainSec.collectLatest { r ->
+                val at = ArrivalGuard.soonAtMs(r, now())
+                if (at == null) { arrivalDue.value = false; return@collectLatest }
+                val wait = at - now()
+                if (wait > 0) { arrivalDue.value = false; delay(wait) }
+                Log.i(TAG, "내비 목적지 곧 도착(약 ${ArrivalGuard.LEAD_SEC}초 전): 안전 장치로 가수 복귀")
+                arrivalDue.value = true
+            }
+        }
+        scope.launch {
+            combine(signals.readings, settings.state, player, arrivalDue) { r, s, p, a -> Inputs(r, s, p, a) }
+                .collect { (r, s, p, a) -> onInputs(r, s, p, a) }
         }
     }
 
@@ -148,10 +168,20 @@ class GateController(
         }
     }
 
-    private fun onInputs(r: CabinReadings, s: AppSettings, p: PlayerSnapshot) {
+    private data class Inputs(val r: CabinReadings, val s: AppSettings, val p: PlayerSnapshot, val arrival: Boolean)
+
+    private fun onInputs(r: CabinReadings, s: AppSettings, p: PlayerSnapshot, arrival: Boolean) {
         val t = now()
         envTick(r.wiperOn)
-        val input = r.toCabinInput(s, p.isPlaying)
+        // 착석 값 방향 자동 맞춤: 기어가 들어가 있으면 운전석에 사람이 있다(SeatPolarity). 다르면 설정을 고치고, 고친 설정으로 다시 들어온다.
+        SeatPolarity.inferInverted(r.gearAaos, r.seats[Zone.FRONT_LEFT])?.let { inv ->
+            if (inv != s.invertSeatOccupancy) {
+                Log.i(TAG, "착석 값 방향 자동 맞춤: 뒤집기 ${s.invertSeatOccupancy} -> $inv (기어 ${r.gearAaos}, 운전석 원래 값 ${r.seats[Zone.FRONT_LEFT]})")
+                settings.update { it.copy(invertSeatOccupancy = inv) }
+                return
+            }
+        }
+        val input = r.toCabinInput(s, p.isPlaying).let { it.copy(arrivingSoon = arrival && it.gear != Gear.PARK) }
         // 설정이 바뀌었으면 먼저 반영한다.
         val config = s.toGateConfig()
         if (config != lastConfig) {

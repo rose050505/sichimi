@@ -1,0 +1,13 @@
+--------- beginning of main
+11-12 07:14:06.962 I/SC.Gate (29035): 상태 KARAOKE -> NORMAL
+11-12 07:14:06.962 I/SC.Gate (29035): 가수 음량 -> 1.0 (120ms) seq=4
+11-12 07:14:06.992 I/SC.Gate (29035): 들킬 뻔 cause=SEAT reactionMs=249 song=01-arirang pos=156379 가사=나를 버리고 가시는 님은
+11-12 07:14:09.933 I/SC.Signal(29035): 기어(AAOS GEAR_SELECTION) callback raw=8 status=0 -> DRIVE
+11-12 07:14:09.934 I/SC.Gate (29035): 착석 값 방향 자동 맞춤: 뒤집기 false -> true (기어 DRIVE, 운전석 원래 값 Known(value=false))
+11-12 07:14:09.934 I/SC.Gate (29035): 상태 NORMAL -> ARMING
+11-12 07:14:09.935 I/SC.Gate (29035): 주행 시작 id=3
+11-12 07:14:12.598 I/SC.Signal(29035): 기어(AAOS GEAR_SELECTION) callback raw=4 status=0 -> PARK
+11-12 07:14:12.599 I/SC.Gate (29035): 주행 끝 id=3 solo=0ms 곡=0 들킬뻔=0
+11-12 07:14:17.934 I/SC.Gate (29035): 상태 ARMING -> KARAOKE
+11-12 07:14:17.935 I/SC.Gate (29035): 가수 음량 -> 0.2 (600ms) seq=5
+11-12 07:14:17.935 I/SC.Gate (29035): 휴, 안 들켰다: 들킬 뻔 1 뒤 다시 노래방

@@ -339,10 +339,8 @@ fun causeText(cause: String) = when (cause) { "DOOR" -> "문이 열림"; "SEAT" 
 @Composable
 fun ReplayCard(r: ReplayUi, stage: Int, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().nightCard().padding(horizontal = Dimen.l, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        // 숨는 중 끝 모습(안테나와 두 눈)은 그림 칸 아래쪽에만 그려지므로, 위를 잘라 낮은 띠로 둔다
-        Box(Modifier.size(width = 140.dp, height = 88.dp).clip(RoundedCornerShape(0.dp)), contentAlignment = Alignment.BottomCenter) {
-            Mascot(stage, MascotPose.HIDING, app.sichimi.gate.MascotLook(), Modifier.size(140.dp), hide = { 1f })
-        }
+        // 작게 그리면 숨는 자세(안테나와 눈만)는 잘린 그림처럼 읽혀서, 다시 혼자가 됐을 때의 "휴, 안 들켰다" 자세를 쓴다
+        Mascot(stage, MascotPose.RELIEVED, app.sichimi.gate.MascotLook(), Modifier.size(120.dp))
         Spacer(Modifier.width(Dimen.m))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("들킬 뻔 리플레이 · ${causeText(r.cause)}", style = Type.bodyM.copy(fontWeight = FontWeight.Bold), color = Night.text)

@@ -45,6 +45,7 @@ class Graph(app: Application) {
         durationOf = { id -> songs.find(id)?.durationMs ?: 0L },
         lyricAt = { id, pos -> songs.find(id)?.let(songs::lyrics)?.lastOrNull { it.atMs <= pos }?.text?.takeIf { it.isNotBlank() } },
         onEscape = { escapes.onEscape(it) },
+        remainSec = navi.remainSec,
     )
     val takes = TakeStore(app)
     val uploader = TakeUploader(scope, ranking, takes, settings)

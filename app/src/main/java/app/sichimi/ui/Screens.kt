@@ -166,9 +166,15 @@ fun ParkedScreen(
             NightTabs(tabs, current, { it.label }, { it.icon() }, onTab)
             Spacer(Modifier.height(Dimen.s))
             if (summary != null) {
-                NightSummary(summary, onDismissSummary)
-                if (summaryExtra != null) { Spacer(Modifier.height(Dimen.s)); summaryExtra() }
-                Spacer(Modifier.height(Dimen.m))
+                // 무대·점수·설정·예약 목록에서는 한 줄로 접어 화면을 비운다. 리플레이 카드는 내 기록 탭에서 크게.
+                if (current == ParkedTab.RECORDS) {
+                    NightSummary(summary, onDismissSummary)
+                    if (summaryExtra != null) { Spacer(Modifier.height(Dimen.s)); summaryExtra() }
+                    Spacer(Modifier.height(Dimen.m))
+                } else {
+                    NightSummary(summary, onDismissSummary, slim = true)
+                    Spacer(Modifier.height(Dimen.s))
+                }
             }
             Box(Modifier.weight(1f).fillMaxWidth()) { body() }
         }
@@ -754,6 +760,8 @@ fun SettingsTab(
     var confirmClear by remember { mutableStateOf(false) }
     var confirmRank by remember { mutableStateOf(false) }
     var confirmServerDelete by remember { mutableStateOf(false) }
+    var privacy by remember { mutableStateOf(false) }
+    if (privacy) NightInfoDialog(AppIcons.Lock, "개인정보 처리 안내", PRIVACY_TEXT, { privacy = false })
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Dimen.l)) {
         NightSection("노래방", AppIcons.Mic) {
             NightSwitchRow("혼자일 때 가수 목소리 줄이기", "끄면 평범한 음악 플레이어로만 씁니다", s.enabled, onEnabled)
@@ -764,7 +772,7 @@ fun SettingsTab(
             NightDivider()
             ChoiceRow("창문 기준(이보다 많이 열리면 닫힘)", listOf(2, 10, 20), s.windowThresholdPct, { "$it%" }, onWindow)
             NightDivider()
-            NightSwitchRow("안전 장치", "후진하거나 방향지시등을 켜면 가수 목소리를 잠깐 돌려놓습니다", s.safetyReturn, onSafety)
+            NightSwitchRow("안전 장치", "후진하거나 방향지시등을 켜거나, 내비 목적지에 1분 안으로 다가오면 가수 목소리를 먼저 돌려놓습니다", s.safetyReturn, onSafety)
             NightDivider()
             NightSwitchRow("첫 소절 박자 세기", "노래방일 때 첫 소절 바로 앞에서 드럼 스틱으로 탁, 탁, 탁, 탁 박자를 세어 줍니다", s.countIn, onCountIn)
         }
@@ -795,7 +803,7 @@ fun SettingsTab(
             }
         }
         NightSection("차", AppIcons.Car) {
-            NightSwitchRow("착석 값 뒤집기", "Pleos Connect Emulator 2.1.0은 착석 값이 반대로 옵니다. 실제 차에서 반대로 동작하면 끄세요", s.invertSeat, onInvert)
+            NightSwitchRow("착석 값 뒤집기", "차마다 착석 값 방향이 달라(Pleos Connect Emulator 2.1.0은 반대로 옴) 기어를 넣으면 운전석 값을 보고 자동으로 맞춥니다", s.invertSeat, onInvert)
             if (s.passengerUnreadable) Body("이 차는 동승석 착석을 읽을 수 없어 이 기능이 열리지 않습니다", Night.danger, Type.bodyS, Modifier.padding(start = Dimen.l, end = Dimen.l, bottom = Dimen.m))
             if (s.rearSeatsUnreadable) Body("이 차는 뒷좌석 착석을 읽을 수 없어 뒷좌석은 비어 있다고 봅니다", Night.sub, Type.bodyS, Modifier.padding(start = Dimen.l, end = Dimen.l, bottom = Dimen.m))
         }
@@ -811,6 +819,14 @@ fun SettingsTab(
                         (if (s.scoring) "마이크는 노래 점수를 켰을 때, 혼자만의 노래방에서만 씁니다." else "마이크를 쓰지 않습니다."),
                     style = Type.bodyS, color = Night.sub, modifier = Modifier.weight(1f),
                 )
+            }
+            NightDivider()
+            Row(Modifier.fillMaxWidth().padding(Dimen.l), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("개인정보 처리 안내", style = Type.bodyM.copy(fontWeight = FontWeight.SemiBold), color = Night.text)
+                    Text("모으지 않는 것, 차 안에만 두는 것, 서버로 보내는 것", style = Type.label, color = Night.sub)
+                }
+                NightButton("안내 보기", { privacy = true }, icon = AppIcons.Info, style = NightStyle.TONAL)
             }
             NightDivider()
             Row(Modifier.fillMaxWidth().padding(Dimen.l), verticalAlignment = Alignment.CenterVertically) {
@@ -879,14 +895,14 @@ private fun NicknameRow(nickname: String, onSave: (String) -> Unit) {
 // ---------- v3 한밤 무대: 오늘 요약 띠, 예약 목록, 주행 노래방 화면 ----------
 
 @Composable
-private fun NightSummary(summary: String, onDismiss: () -> Unit) {
-    Row(Modifier.fillMaxWidth().nightCard(Night.raised).padding(start = Dimen.l, end = Dimen.s, top = Dimen.s, bottom = Dimen.s),
+private fun NightSummary(summary: String, onDismiss: () -> Unit, slim: Boolean = false) {
+    Row(Modifier.fillMaxWidth().nightCard(Night.raised).padding(start = Dimen.l, end = if (slim) 6.dp else Dimen.s, top = if (slim) 4.dp else Dimen.s, bottom = if (slim) 4.dp else Dimen.s),
         verticalAlignment = Alignment.CenterVertically) {
-        Icon(AppIcons.Chart, null, tint = Night.gold, modifier = Modifier.size(Dimen.icon))
+        Icon(AppIcons.Chart, null, tint = Night.gold, modifier = Modifier.size(if (slim) 28.dp else Dimen.icon))
         Spacer(Modifier.width(Dimen.m))
-        Text(summary, style = Type.bodyM, color = Night.text, modifier = Modifier.weight(1f))
+        Text(summary, style = if (slim) Type.label else Type.bodyM, color = Night.text, modifier = Modifier.weight(1f), maxLines = if (slim) 1 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.width(Dimen.m))
-        NightButton("확인", onDismiss, style = NightStyle.TONAL)
+        NightButton("확인", onDismiss, style = NightStyle.TONAL, height = if (slim) 64.dp else Dimen.button)
     }
 }
 
@@ -990,3 +1006,10 @@ private fun NightDriveKey(icon: ImageVector, label: String, primary: Boolean, on
         contentAlignment = Alignment.Center,
     ) { Icon(icon, null, tint = if (primary) Night.onPink else Night.text, modifier = Modifier.size(Dimen.driveButton * 0.42f)) }
 }
+
+/** docs/개인정보처리.md의 요약(설정 「안내 보기」). */
+private const val PRIVACY_TEXT =
+    "모으지 않는 것: 이름·연락처·계정, 위치(내비에서는 남은 시간 숫자만), 차 신호 원본(들킬 뻔은 원인 종류와 시각만), 랭킹 올리기를 끈 동안의 마이크 소리(음높이 숫자만 계산하고 버림).\n" +
+    "차 안에만: 주행·곡 기록, 노래 점수, 내 녹음(랭킹 올리기를 켰을 때만, 곡당 하나), 고른 고스트 목소리(한 판 뒤 지움). 「기록 지우기」로 지웁니다.\n" +
+    "서버로(랭킹 올리기를 켰을 때만, 익명 번호로): 별명과 곡별 최고 점수, 주간 가장 빠른 대피(시간·원인), 내가 「녹음 올리기」를 누른 녹음. 모두 공개되고, 「지우기」나 「서버의 내 녹음 모두 지우기」로 지웁니다.\n" +
+    "마이크는 혼자만의 노래방에서 노래 점수를 켰을 때만 엽니다."

@@ -140,6 +140,7 @@ def plain(out):
 def shots(out):
     os.makedirs(out, exist_ok=True)
     start_stage()
+    time.sleep(12)  # 첫 소절(아리랑 16.6초)이 지나 가사 채움이 보일 때
     u.shot(out, "01_stage_karaoke")
     u.tap_any("내 기록"); time.sleep(1); u.shot(out, "02_records_top")
     u.scroll(True, 2); u.shot(out, "03_records_more")

@@ -127,7 +127,7 @@ class PrivacyGate(
     fun targetVocalGain(): Float = if (state == GateState.KARAOKE) config.guideGain else 1f
 
     private fun operating(): Boolean =
-        config.safetyReturn && (input.gear == Gear.REVERSE || input.turnSignalOn)
+        config.safetyReturn && (input.gear == Gear.REVERSE || input.turnSignalOn || input.arrivingSoon)
 
     private fun solitude(): Boolean =
         input.isSolo() && input.isSealed(config.windowThresholdPct)

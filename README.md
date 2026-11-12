@@ -38,7 +38,7 @@
 |---|---|---|
 | ![무대](docs/media/v3_stage.png) | ![점수](docs/media/v3_scores_preview.png) | ![내 기록](docs/media/v3_records.png) |
 
-*(점수 화면은 서버 기록이 적어 debug 전용 미리보기에 예시 별명·점수를 넣어 찍었습니다. 무대와 내 기록은 실제 앱입니다.)*
+*(점수 화면은 서버 기록이 적어 debug 전용 미리보기에 예시 별명·점수를 넣어 찍었고, 그림 안에 「예시 데이터」라고 적었습니다. 무대와 내 기록은 실제 앱입니다. 실제 서버 기록으로 찍은 대피 랭킹 단상: [`regress_v3/escape/2_escape_rank_tab.png`](docs/evidence/ui/regress_v3/escape/2_escape_rank_tab.png))*
 
 ![시치미 4단계(새싹 → 마이크 → 무대 옷 → 조명과 스탠드)와 우비·밤·바람·숨기·안도](docs/media/sichimi_mascot_v2.png)
 
@@ -55,9 +55,9 @@
 | 항목 | 이 앱에서 | 증거 |
 |---|---|---|
 | 차량특화성 | 좌석 착석·문·창문·기어·방향지시등 신호로 "혼자이고 닫힌 차"를 판정하는 문지기(상태 기계). 휴대폰에서는 알 수 없는 차 안 상황에만 열린다 | 아래 [문지기와 신호](#문지기와-신호), 상태 기계 [`gate/`](gate/src/main/kotlin/app/sichimi/gate/PrivacyGate.kt) |
-| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점·녹음·무대 단위 테스트 119개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
+| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점·녹음·무대 단위 테스트 128개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
 | 창의성 | 노래방을 사용자가 켜지 않는다. 동승자가 타거나 문·창문이 열리면 앱이 먼저 시치미를 뗀다. 혼자가 아닐 때는 화면 어디에도 "노래방"이 없다 | 장면 2·3 스크린샷 [`docs/evidence/scenes/`](docs/evidence/scenes/) |
-| 재미(v2) | 혼자·밀폐 신호와 들킬 뻔한 순간이 그대로 놀이가 된다: 시치미가 숨고, 대피 시간이 랭킹이 되고, 녹음이 고스트가 된다 | v2 흐름 증거 [`docs/evidence/v2/`](docs/evidence/v2/), 대표 화면 [`docs/evidence/ui/after_v2/`](docs/evidence/ui/after_v2/), 순수 로직 단위 테스트 119개 |
+| 재미(v2) | 혼자·밀폐 신호와 들킬 뻔한 순간이 그대로 놀이가 된다: 시치미가 숨고, 대피 시간이 랭킹이 되고, 녹음이 고스트가 된다 | v2 흐름 증거 [`docs/evidence/v2/`](docs/evidence/v2/), 대표 화면 [`docs/evidence/ui/after_v2/`](docs/evidence/ui/after_v2/), 순수 로직 단위 테스트 128개 |
 | 화면(Pleos UI 가이드 + 한밤 무대) | 두 체계를 나눠 씀: 동승자가 있거나 일반 상태일 때는 Pleos 다크 토큰 그대로의 평범한 플레이어, 혼자일 때는 「한밤 무대」 체계(로고, 분홍·금색, 메달·단상, 하나로 이어진 조작부). 글자 크기는 Pleos 체계(본문 24sp 이상), 주행 화면 버튼 136dp, 대비 4.5:1 이상(69쌍), 움직임은 기어 P에서만 | 디자인 체계와 시안 [`docs/design/`](docs/design/디자인체계.md), 코드 [`ui/Night.kt`](app/src/main/java/app/sichimi/ui/Night.kt)·[`ui/Theme.kt`](app/src/main/java/app/sichimi/ui/Theme.kt), 대비 검사 [`tools/check_contrast.py`](tools/check_contrast.py), v2→v3 비교 [`docs/evidence/ui/after_v3/compare_v2/`](docs/evidence/ui/after_v3/compare_v2/) |
 
 ## 문지기와 신호
@@ -69,14 +69,14 @@
 | 창문 위치(네 창문) | Vehicle SDK `Window` | 닫혀 있는가(기본 2% 이하) |
 | 기어 | AAOS `CarPropertyManager` `GEAR_SELECTION` | 주행 화면, 후진 때 잠시 복귀, 주행 단위 기록 |
 | 방향지시등 | Vehicle SDK `TurnSignal` | 잠시 복귀 |
-| 남은 시간 | NaviHelper `DestinationInfo.remainTime`(초) | 마지막 곡 알림(남은 시간 3~5분, 노래방일 때 "도착까지 N분, 한 곡 더 됩니다") |
+| 남은 시간 | NaviHelper `DestinationInfo.remainTime`(초) | 마지막 곡 알림(남은 시간 3~5분, 노래방일 때 "도착까지 N분, 한 곡 더 됩니다"), **도착 1분 전 미리 시치미**(주차장 입구·발렛·픽업 전에 가수 목소리를 먼저 돌려놓음, [`docs/evidence/arrival/`](docs/evidence/arrival/result.md)) |
 
 | 상태 | 가수 음량 | 들어가는 조건 |
 |---|---|---|
 | 일반 | 100% | 시작, 또는 혼자가 아니게 되거나 문·창문이 열림(들킬 뻔 기록) |
 | 대기 | 100% | 혼자 + 닫힘 + 재생 중 + 후진·방향지시등 아님 → 5초(들킬 뻔 직후 8초) |
 | 노래방 | 20%(설정 0~40%) | 대기가 끝남. 0.6초에 걸쳐 내림 |
-| 잠시 복귀 | 100% | 노래방 중 후진·방향지시등. 끝나고 1.5초 뒤 다시 노래방 |
+| 잠시 복귀 | 100% | 노래방 중 후진·방향지시등·내비 목적지 1분 전. 끝나고 1.5초 뒤 다시 노래방 |
 
 - 문이 열리면 0.12초 램프로 가수 음량을 올립니다. 신호에서 안드로이드 출력까지 약 0.25초입니다(검증기록 G2).
 - 노래방일 때는 곡의 첫 소절 바로 앞 네 박에 드럼 스틱 소리(탁, 탁, 탁, 탁)로 박자를 세어 줍니다(설정 「첫 소절 박자 세기」, 기본 켬). 박자 소리는 곡 파일의 다섯 번째 채널이라 곡 박자와 표본 단위로 맞고, 혼자가 아니게 되면 가수 목소리와 함께 바로 빠집니다(검증기록 "박자 세기").
@@ -101,7 +101,7 @@
 ## 테스트 환경과 필요한 설정
 
 - Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
-- 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있습니다(실차에서 반대로 동작하면 끕니다). 검증기록 G1.
+- 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있고, 기어를 넣으면 "운전석에는 사람이 있다"는 사실로 방향을 스스로 맞춥니다(맞추기 전에는 운전석이 빈 것으로 보여 노래방이 열리지 않는 쪽). 검증기록 G1, [`docs/evidence/seat_auto/`](docs/evidence/seat_auto/).
 - 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~5분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
 - 노래 점수는 에뮬레이터의 마이크 입력을 씁니다(확장 컨트롤 → 마이크 → "Virtual microphone uses host audio input", 또는 `adb emu avd hostmicon`). 저장소의 APK에는 전국 랭킹 서버가 연결돼 있습니다. 직접 빌드할 때는 `app/google-services.json`(Firebase 프로젝트, 저장소에 넣지 않음)이 있어야 랭킹이 켜지고, 없으면 랭킹 칸만 "연결 안 됨"이고 나머지는 그대로입니다.
 - 빌드: JDK 17, Gradle 8.10.2(래퍼), AGP 8.7.3, Kotlin 2.0.21, compileSdk 34, minSdk 28.
@@ -121,7 +121,7 @@ release 서명은 저장소 밖의 키를 `keystore.properties`(저장소에 넣
 
 ## 음원
 
-곡 목록과 출처·라이선스는 [NOTICE.md](NOTICE.md)에 있습니다. 곡마다 반주(좌·우), 보컬(좌·우), 박자 세기 소리를 5채널 Opus 한 파일(`mix5.ogg`)에 담아 서로 어긋나지 않게 합니다(`tools/pack_stems.py`, 박자 소리는 `tools/count_in.py`).
+개인정보 처리 안내는 [docs/개인정보처리.md](docs/개인정보처리.md)(앱 설정의 「안내 보기」와 같은 내용), PT 기술 Q&A 준비는 [docs/PT_기술QA.md](docs/PT_기술QA.md)에 있습니다. 곡 목록과 출처·라이선스는 [NOTICE.md](NOTICE.md)에 있습니다. 곡마다 반주(좌·우), 보컬(좌·우), 박자 세기 소리를 5채널 Opus 한 파일(`mix5.ogg`)에 담아 서로 어긋나지 않게 합니다(`tools/pack_stems.py`, 박자 소리는 `tools/count_in.py`).
 
 ## 구조
 
