@@ -157,16 +157,33 @@ fun KaraokeStage(
 
 private val LyricShadow = Shadow(Color(0x99000000), Offset(0f, 4f), 24f)
 
-/** 노래방 가사 한 줄: 흰 글자 위로 분홍이 왼쪽부터 채워진다. 채움은 그리기 단계에서만 바뀐다. */
+/**
+ * 노래방 가사 한 줄: 흰 글자 위로 분홍이 왼쪽부터 채워진다. 줄이 길어 두 줄로 넘어가면 윗줄을 다 채운 뒤 아랫줄을 채운다
+ * (글자 폭 합으로 나눠 차례로). 채움은 그리기 단계에서만 바뀐다.
+ */
 @Composable
 fun WipeLine(text: String, fraction: () -> Float) {
     val style = Type.display.copy(shadow = LyricShadow, textAlign = TA.Center)
+    var layout by remember(text) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     Box {
-        Text(text, style = style, color = Night.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(text, style = style, color = Night.text, maxLines = 2, overflow = TextOverflow.Ellipsis, onTextLayout = { layout = it })
         Text(text, style = style.copy(shadow = null), color = Night.pink, maxLines = 2, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.clearAndSetSemantics { }.drawWithContent {
+                val l = layout
                 val f = fraction()
-                clipRect(right = size.width * f) { this@drawWithContent.drawContent() }
+                if (l == null || l.lineCount <= 1) {
+                    clipRect(right = size.width * f) { this@drawWithContent.drawContent() }
+                } else {
+                    val widths = (0 until l.lineCount).map { (l.getLineRight(it) - l.getLineLeft(it)).coerceAtLeast(0f) }
+                    var left = widths.sum() * f
+                    for (i in 0 until l.lineCount) {
+                        val take = left.coerceIn(0f, widths[i])
+                        left -= take
+                        if (take <= 0f) break
+                        val x0 = l.getLineLeft(i)
+                        clipRect(left = x0, top = l.getLineTop(i), right = x0 + take, bottom = l.getLineBottom(i)) { this@drawWithContent.drawContent() }
+                    }
+                }
             })
     }
 }

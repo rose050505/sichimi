@@ -101,6 +101,9 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
     val settings by graph.settings.state.collectAsStateWithLifecycle()
     val pendingTrip by graph.controller.pendingSummaryTrip.collectAsStateWithLifecycle()
 
+    // 보던 탭은 주행 화면을 거쳐도 기억한다(동승자가 있으면 ParkedScreen이 혼자 전용 탭을 숨기고 재생 탭을 보인다)
+    var tab by rememberSaveable { mutableStateOf(ParkedTab.PLAYER) }
+
     // 주행 화면: 기어가 P가 아니거나(값을 아직 모를 때 포함) 주행 규제가 걸렸을 때
     val driving = gate.gear != Gear.PARK || requiresDo
     if (driving) {
@@ -108,7 +111,6 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
         return
     }
 
-    var tab by rememberSaveable { mutableStateOf(ParkedTab.PLAYER) }
     val lyrics: List<LyricLine> = remember(player.songId) {
         player.songId?.let { id -> graph.songs.find(id)?.let(graph.songs::lyrics) }.orEmpty()
     }
