@@ -44,7 +44,7 @@ class MascotGalleryActivity : ComponentActivity() {
                         Triple("휴, 안 들켰다", MascotPose.RELIEVED, MascotLook()),
                     ).forEach { (name, pose, look) ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Mascot(3, pose, look, Modifier.size(240.dp), hide = { if (pose == MascotPose.HIDING) 0.5f else 0f })
+                            Mascot(3, pose, look, Modifier.size(240.dp), hide = { if (pose == MascotPose.HIDING) 1f else 0f })
                             Text(name, style = Type.bodyM, color = Palette.text)
                         }
                     }

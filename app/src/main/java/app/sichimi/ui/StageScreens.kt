@@ -281,7 +281,7 @@ fun causeText(cause: String) = when (cause) { "DOOR" -> "문이 열림"; "SEAT" 
 @Composable
 fun ReplayCard(r: ReplayUi, stage: Int, modifier: Modifier = Modifier) {
     Row(modifier.card(Palette.stageSurface).padding(Dimen.m), verticalAlignment = Alignment.CenterVertically) {
-        Mascot(stage, MascotPose.HIDING, app.sichimi.gate.MascotLook(), Modifier.size(140.dp), hide = { 0.55f })
+        Mascot(stage, MascotPose.HIDING, app.sichimi.gate.MascotLook(), Modifier.size(140.dp), hide = { 1f })
         Spacer(Modifier.width(Dimen.m))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("들킬 뻔 리플레이 · ${causeText(r.cause)}", style = Type.bodyM.copy(fontWeight = FontWeight.Bold), color = Palette.text)
