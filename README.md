@@ -77,12 +77,12 @@
 - Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
 - 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있습니다(실차에서 반대로 동작하면 끕니다). 검증기록 G1.
 - 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~5분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
-- 노래 점수는 에뮬레이터의 마이크 입력을 씁니다(확장 컨트롤 → 마이크 → "Virtual microphone uses host audio input", 또는 `adb emu avd hostmicon`). 전국 랭킹은 `app/google-services.json`(Firebase 프로젝트, 저장소에 넣지 않음)을 넣고 빌드해야 켜집니다. 없으면 랭킹 칸만 "연결 안 됨"이고 나머지는 그대로입니다.
+- 노래 점수는 에뮬레이터의 마이크 입력을 씁니다(확장 컨트롤 → 마이크 → "Virtual microphone uses host audio input", 또는 `adb emu avd hostmicon`). 저장소의 APK에는 전국 랭킹 서버가 연결돼 있습니다. 직접 빌드할 때는 `app/google-services.json`(Firebase 프로젝트, 저장소에 넣지 않음)이 있어야 랭킹이 켜지고, 없으면 랭킹 칸만 "연결 안 됨"이고 나머지는 그대로입니다.
 - 빌드: JDK 17, Gradle 8.10.2(래퍼), AGP 8.7.3, Kotlin 2.0.21, compileSdk 34, minSdk 28.
 
 ## APK
 
-`apk/Graphite_Sichimi_release.apk` (release 빌드, 62MB). 이 APK로 장면 1~6, 8, 박자 세기, 노래 점수(가상 마이크)를 에뮬레이터에서 확인했습니다. 장면 7은 바로 앞 빌드(아이콘과 요약 글만 다름)로 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
+`apk/Graphite_Sichimi_release.apk` (release 빌드, 62MB). 이 APK로 장면 1~6, 8, 박자 세기, 노래 점수(가상 마이크), 전국 랭킹 서버 연결을 에뮬레이터에서 확인했습니다. 장면 7은 바로 앞 빌드(아이콘과 요약 글만 다름)로 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
 
 직접 빌드하려면:
 
