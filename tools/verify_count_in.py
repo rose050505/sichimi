@@ -98,8 +98,8 @@ def song_start(x, ref):
 
 def clicks_in(diff, t0, sr):
     """두 녹음의 차이에서 딸깍 시각을 찾는다. 에뮬레이터 소리 경로가 표본 단위로 똑같지는 않아 반주가 조금 남으므로
-    딸깍 높이(1.5·2kHz) 대역만 걸러 본다. 딸깍이 있으면 바닥의 20배 안팎, 없으면 5배 아래였다."""
-    diff = sosfiltfilt(butter(4, [1200, 2600], btype="band", fs=sr, output="sos"), diff)
+    박자 소리(드럼 스틱, 에너지 중심 2.4kHz) 대역만 걸러 본다. 소리가 있으면 바닥의 20배 안팎, 없으면 6배 아래였다."""
+    diff = sosfiltfilt(butter(4, [1500, 4500], btype="band", fs=sr, output="sos"), diff)
     hop = int(0.01 * sr)
     env = np.array([np.sqrt(np.mean(diff[i:i + hop] ** 2)) for i in range(0, len(diff) - hop, hop)])
     floor = np.median(env) + 1e-12

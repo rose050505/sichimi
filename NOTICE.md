@@ -4,7 +4,7 @@
 
 ## 음원
 
-앱에 든 곡은 모두 원곡을 [Demucs](https://github.com/facebookresearch/demucs)(htdemucs)로 **보컬과 반주 두 갈래로 나누고**, 첫 소절 앞 박자 세기 딸깍 소리(직접 합성) 한 채널을 더해 5채널 Opus 한 파일(`songs/<id>/mix5.ogg`)로 묶은 것입니다. 원곡을 바꾼 것이므로 아래에 출처와 함께 적습니다. 가사 파일(`lyrics.lrc`)은 나눈 보컬을 자동 받아쓰기(faster-whisper)한 뒤 다듬은 것이라 원래 가사와 다를 수 있습니다.
+앱에 든 곡은 모두 원곡을 [Demucs](https://github.com/facebookresearch/demucs)(htdemucs)로 **보컬과 반주 두 갈래로 나누고**, 첫 소절 앞 박자 세기 드럼 스틱 소리(직접 합성, 녹음 아님) 한 채널을 더해 5채널 Opus 한 파일(`songs/<id>/mix5.ogg`)로 묶은 것입니다. 원곡을 바꾼 것이므로 아래에 출처와 함께 적습니다. 가사 파일(`lyrics.lrc`)은 나눈 보컬을 자동 받아쓰기(faster-whisper)한 뒤 다듬고, 줄 시각을 강제 정렬로 맞춘 것이라 원래 가사와 다를 수 있습니다.
 
 | 폴더 | 곡 | 저작자 | 출처 | 라이선스 | 바꾼 것 |
 |---|---|---|---|---|---|
@@ -38,5 +38,7 @@
 | PyTorch | Demucs 실행 | BSD-3-Clause |
 | librosa | 반주에서 박 찾기(박자 세기) | ISC License |
 | NumPy, SciPy, soundfile | 박자 세기 트랙 만들기, 녹음 분석 | BSD-3-Clause |
+| MMS 정렬 모델(`MahmoudAshraf/mms-300m-1130-forced-aligner`, Meta MMS 기반) | 가사 줄 시각 맞춤(앱에는 시각 숫자만 들어감) | CC BY-NC 4.0 |
+| Hugging Face Transformers | 위 모델 실행 | Apache License 2.0 |
 | FFmpeg | 스템을 4채널 한 파일로 묶음, 녹음 변환 | LGPL 2.1 이상(빌드에 따라 GPL) |
 | JUnit 4 | 문지기 단위 테스트 | Eclipse Public License 1.0 |

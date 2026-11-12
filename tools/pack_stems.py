@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """반주 스템과 보컬 스템을 앱이 읽는 한 파일로 묶는다.
 
-  tools/pack_stems.py <곡 id> <반주 파일> <보컬 파일> [--mix2] [--opus 비트레이트] [--click 딸깍 wav] [--into 폴더]
+  tools/pack_stems.py <곡 id> <반주 파일> <보컬 파일> [--mix2] [--opus 비트레이트] [--click 박자 wav] [--into 폴더]
                       [--title 제목] [--artist 가수] [--source 출처] [--license 라이선스]
 
 결과: songs/<id>/mix4.flac (채널 0·1 = 반주 좌·우, 2·3 = 보컬 좌·우)
       --opus 256k이면 songs/<id>/mix4.ogg (Opus 4채널, 48kHz. 반주 쌍과 보컬 쌍을 따로 부호화해 서로 섞이지 않는다)
       --opus와 --click(tools/count_in.py가 만든 모노 wav)을 함께 주면 songs/<id>/mix5.ogg
-        (Opus 5채널, 5.0 배치 FL FR FC BL BR = 반주 좌·우, 딸깍, 보컬 좌·우. 앱이 푸는 순서는 StemMixProcessor.Ch5)
+        (Opus 5채널, 5.0 배치 FL FR FC BL BR = 반주 좌·우, 박자 소리, 보컬 좌·우. 앱이 푸는 순서는 StemMixProcessor.Ch5)
       --mix2이면 songs/<id>/mix2.flac (왼쪽 = 반주 모노, 오른쪽 = 보컬 모노)
       songs/<id>/meta.json (없을 때만 만든다)
       --into songs-dev 이면 songs/ 대신 songs-dev/에 만든다(debug 빌드에만 들어가는 개발용 곡).
@@ -44,7 +44,7 @@ def main():
     ap.add_argument("--license", default="")
     ap.add_argument("--rate", type=int, default=44100)
     ap.add_argument("--opus", default="", help="Opus 비트레이트(예: 256k). mix4에만 쓴다")
-    ap.add_argument("--click", default="", help="박자 세기 딸깍 트랙(모노 wav). --opus와 함께 쓴다")
+    ap.add_argument("--click", default="", help="박자 세기 트랙(모노 wav). --opus와 함께 쓴다")
     ap.add_argument("--into", default="songs")
     a = ap.parse_args()
     if a.opus and a.mix2:

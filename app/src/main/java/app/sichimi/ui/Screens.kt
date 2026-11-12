@@ -400,7 +400,7 @@ fun SettingsTab(
         SettingChoice("대기 시간(혼자·문 닫힘이 이만큼 이어지면 열림)", listOf(3, 5, 8), s.dwellSeconds, { "${it}초" }, onDwell)
         SettingChoice("창문 기준(이보다 많이 열리면 닫힘)", listOf(2, 10, 20), s.windowThresholdPct, { "$it%" }, onWindow)
         SettingSwitch("안전 장치", "후진하거나 방향지시등을 켜면 가수 목소리를 잠깐 돌려놓습니다", s.safetyReturn, onSafety)
-        SettingSwitch("첫 소절 박자 세기", "노래방일 때 첫 소절 바로 앞에서 딸깍딸깍 네 번 박자를 쳐 줍니다", s.countIn, onCountIn)
+        SettingSwitch("첫 소절 박자 세기", "노래방일 때 첫 소절 바로 앞에서 드럼 스틱으로 탁, 탁, 탁, 탁 박자를 세어 줍니다", s.countIn, onCountIn)
         SettingSwitch("착석 값 뒤집기", "Pleos Connect Emulator 2.1.0은 착석 값이 반대로 옵니다. 실제 차에서 반대로 동작하면 끄세요", s.invertSeat, onInvert)
         if (s.passengerUnreadable) Text("이 차는 동승석 착석을 읽을 수 없어 이 기능이 열리지 않습니다", color = Palette.danger, fontSize = BODY)
         if (s.rearSeatsUnreadable) Text("이 차는 뒷좌석 착석을 읽을 수 없어 뒷좌석은 비어 있다고 봅니다", color = Palette.sub, fontSize = BODY)
