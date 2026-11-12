@@ -1,0 +1,5 @@
+문서: rank/01-arirang/takes/dZrUFaCopXWLKpQmUY48QKiLDz63
+필드: ['at', 'audio', 'lengthMs', 'score', 'startMs']
+녹음 바이트: 778393 첫 2바이트(ADTS): fff1
+score 86 startMs 7279 lengthMs 189400 at 2026-11-12T07:36:10.794838Z
+목록 응답(select)에 audio 없음: True

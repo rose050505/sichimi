@@ -1,0 +1,3 @@
+--------- beginning of main
+11-11 23:36:49.411 I/SC.Rank ( 7335): 녹음 받음: 01-arirang 778393바이트 (160ms)
+11-11 23:36:50.438 I/SC.TakePlay( 7335): 녹음 듣기 시작: 01-arirang/dZrUFaCopXWLKpQmUY48QKiLDz63 곡 4279ms부터, 목소리 7279~196655ms
