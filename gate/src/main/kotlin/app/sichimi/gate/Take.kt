@@ -51,6 +51,31 @@ class TakeTimeline(durationMs: Long, val sampleRate: Int = SR) {
     /** 녹음 길이(ms, 처음 쓴 곳부터 마지막 쓴 곳까지). */
     val lengthMs: Long get() = if (isEmpty) 0 else (end - first) * 1000L / sampleRate
 
+    /**
+     * 실제로 소리가 있는 구간(표본, 끝은 포함 안 함). 20ms 묶음의 크기(RMS)가 가장 큰 묶음의 [ratio]배를 넘는
+     * 첫 묶음부터 마지막 묶음까지, 앞뒤로 [padMs] 여유를 둔다. 앞뒤의 작은 잡음(전주 동안 들어온 소리)을 뺀다.
+     */
+    fun voicedRange(ratio: Double = 0.1, padMs: Int = 500): IntRange? {
+        if (isEmpty) return null
+        val block = sampleRate / 50
+        val n = (end - first) / block
+        if (n == 0) return null
+        val rms = DoubleArray(n) { b ->
+            var sum = 0.0
+            val s0 = first + b * block
+            for (i in s0 until s0 + block) { val v = pcm[i].toDouble(); sum += v * v }
+            kotlin.math.sqrt(sum / block)
+        }
+        val top = rms.max()
+        if (top <= 0) return null
+        val on = rms.indexOfFirst { it > top * ratio }
+        val off = rms.indexOfLast { it > top * ratio }
+        val pad = padMs * sampleRate / 1000
+        val from = maxOf(first, first + on * block - pad)
+        val to = minOf(end, first + (off + 1) * block + pad)
+        return from until to
+    }
+
     companion object {
         const val SR = 16_000
         const val RESYNC_MS = 60

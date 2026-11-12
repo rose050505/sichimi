@@ -118,7 +118,7 @@ def sing(out):
             print(line)
 
 
-def play_and_capture(out, name, button, sec=25):
+def play_and_capture(out, name, button, sec=40):
     sh("adb", "logcat", "-c")
     wav = os.path.join(out, name + ".wav")
     rec = record(wav, sec)

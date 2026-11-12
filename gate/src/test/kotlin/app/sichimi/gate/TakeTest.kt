@@ -43,6 +43,25 @@ class TakeTest {
     }
 
     @Test
+    fun 앞뒤의_작은_잡음은_뺀다() {
+        val t = TakeTimeline(20_000)
+        var ms = 10L
+        repeat(500) { t.write(ms, hop(30)); ms += 20 }      // 0~10초: 작은 잡음
+        repeat(250) { t.write(ms, hop(8000)); ms += 20 }    // 10~15초: 노래
+        repeat(100) { t.write(ms, hop(-20)); ms += 20 }     // 15~17초: 작은 잡음
+        val r = t.voicedRange()!!
+        assertEquals(10_000 * 16 - 8_000, r.first)          // 노래 0.5초 앞
+        assertEquals(15_000 * 16 + 8_000, r.last + 1)       // 노래 0.5초 뒤
+    }
+
+    @Test
+    fun 무음뿐이면_구간이_없다() {
+        val t = TakeTimeline(2_000)
+        t.write(10, hop(0))
+        assertEquals(null, t.voicedRange())
+    }
+
+    @Test
     fun 아무것도_안_쓰면_비었다() {
         val t = TakeTimeline(1_000)
         assertTrue(t.isEmpty); assertEquals(0L, t.lengthMs)

@@ -172,9 +172,14 @@ class SingCoach(
         if (t.isEmpty || t.lengthMs < MIN_TAKE_MS) return
         _takeWorking.value = songId
         runCatching {
-            val e = kotlinx.coroutines.withContext(Dispatchers.Default) { TakeCodec.encode(t.pcm, t.first, t.end, t.startMs - shiftMs) }
+            val e = kotlinx.coroutines.withContext(Dispatchers.Default) {
+                // 앞뒤의 작은 잡음(전주 동안 들어온 소리)을 빼고 노래가 있는 구간만 담는다
+                val r = t.voicedRange() ?: return@withContext null
+                if ((r.last + 1 - r.first) * 1000L / t.sampleRate < MIN_TAKE_MS) return@withContext null
+                TakeCodec.encode(t.pcm, r.first, r.last + 1, r.first * 1000L / t.sampleRate - shiftMs)
+            } ?: return@runCatching
             takes.save(songId, score, e)
-            Log.i(TAG, "녹음: 곡 ${t.startMs}ms부터 ${t.lengthMs}ms(지연 보정 ${shiftMs}ms), 건너뜀 ${t.jumps}번 -> ${e.bitrate / 1000}kbps ${e.bytes.size}바이트" + if (e.cut) " (잘림)" else "")
+            Log.i(TAG, "녹음: 모은 것 곡 ${t.startMs}ms부터 ${t.lengthMs}ms -> 남긴 것 ${e.startMs + shiftMs}ms부터 ${e.lengthMs}ms(지연 보정 ${shiftMs}ms), 건너뜀 ${t.jumps}번 -> ${e.bitrate / 1000}kbps ${e.bytes.size}바이트" + if (e.cut) " (잘림)" else "")
         }.onFailure { Log.w(TAG, "녹음 저장 실패(점수는 그대로): $it") }
         _takeWorking.value = null
     }
