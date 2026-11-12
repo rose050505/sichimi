@@ -59,6 +59,8 @@ data class SongScore(
     val finished: Boolean,
 )
 
+data class BestScore(val songId: String, val best: Int)
+
 /** 곡별 내 점수: 최고(완주), 가장 최근, 부른 횟수. */
 data class SongScoreRow(val songId: String, val best: Int?, val last: Int, val lastAt: Long, val times: Int)
 
@@ -104,6 +106,8 @@ interface RecordDao {
             "FROM SongScore s WHERE s.at = (SELECT MAX(at) FROM SongScore l WHERE l.songId = s.songId) ORDER BY s.at DESC"
     )
     fun scoreRows(): Flow<List<SongScoreRow>>
+    @Query("SELECT songId, MAX(score) AS best FROM SongScore WHERE finished = 1 GROUP BY songId")
+    suspend fun bestScores(): List<BestScore>
     @Query("DELETE FROM SongScore") suspend fun clearScores()
 
     @Query("DELETE FROM Trip") suspend fun clearTrips()

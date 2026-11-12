@@ -6,6 +6,7 @@ import app.sichimi.audio.StemMixProcessor
 import app.sichimi.data.RecordDb
 import app.sichimi.gate.LastSongCue
 import app.sichimi.navi.NaviRemaining
+import app.sichimi.rank.RankingClient
 import app.sichimi.settings.SettingsStore
 import app.sichimi.songs.AssetSongSource
 import app.sichimi.songs.SongSource
@@ -32,7 +33,8 @@ class Graph(app: Application) {
     @Volatile var positionProvider: () -> Long = { 0L }
 
     val controller = GateController(app, scope, signals, settings, mixer, db.dao()) { positionProvider() }
-    val coach = SingCoach(app, scope, controller, settings, songs, db.dao(), announcer) { positionProvider() }
+    val ranking = RankingClient(app)
+    val coach = SingCoach(app, scope, controller, settings, songs, db.dao(), announcer, ranking) { positionProvider() }
 
     fun start() {
         signals.start()

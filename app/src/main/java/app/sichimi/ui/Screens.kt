@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.sichimi.gate.GateState
+import app.sichimi.rank.RankEntry
 import app.sichimi.songs.LyricLine
 import kotlinx.coroutines.delay
 
@@ -375,8 +377,25 @@ data class ScoreRowUi(val title: String, val best: Int?, val last: Int, val time
 
 data class LastScoreUi(val title: String, val score: Int, val finished: Boolean, val previousBest: Int?)
 
+/** 전국 랭킹 칸의 상태. */
+sealed interface RankUi {
+    data object NotConfigured : RankUi
+    data object Loading : RankUi
+    data object Failed : RankUi
+    data class Ready(val top: List<RankEntry>, val myRank: Int?, val total: Int) : RankUi
+}
+
 @Composable
-fun ScoresTab(scoring: Boolean, last: LastScoreUi?, rows: List<ScoreRowUi>) {
+fun ScoresTab(
+    scoring: Boolean,
+    last: LastScoreUi?,
+    rows: List<ScoreRowUi>,
+    rankSongs: List<Pair<String, String>>,
+    rankSong: String?,
+    onRankSong: (String) -> Unit,
+    rank: RankUi,
+    uploading: Boolean,
+) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (!scoring) {
             Text("설정에서 「노래 점수」를 켜면 혼자만의 노래방에서 부른 노래에 점수를 매깁니다.", color = Palette.sub, fontSize = BODY)
@@ -411,6 +430,57 @@ fun ScoresTab(scoring: Boolean, last: LastScoreUi?, rows: List<ScoreRowUi>) {
                 }
             }
         }
+        RankSection(rankSongs, rankSong, onRankSong, rank, uploading)
+    }
+}
+
+@Composable
+private fun RankSection(songs: List<Pair<String, String>>, selected: String?, onSelect: (String) -> Unit, rank: RankUi, uploading: Boolean) {
+    Spacer(Modifier.height(8.dp))
+    Text("전국 랭킹", color = Palette.sub, fontSize = 26.sp)
+    if (rank == RankUi.NotConfigured) {
+        Text("전국 랭킹 서버가 아직 연결되지 않았습니다.", color = Palette.dim, fontSize = BODY)
+        return
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        songs.forEach { (id, title) ->
+            val on = id == selected
+            Box(
+                Modifier.heightIn(min = 64.dp).clip(RoundedCornerShape(32.dp)).background(if (on) Palette.surfaceHi else Palette.surface)
+                    .clickable { onSelect(id) }.padding(horizontal = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text(title, color = if (on) Palette.text else Palette.sub, fontSize = 26.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
+    }
+    when (rank) {
+        RankUi.Loading -> Text("불러오는 중…", color = Palette.dim, fontSize = BODY)
+        RankUi.Failed -> Text("랭킹을 불러오지 못했습니다. 네트워크를 확인해 주세요.", color = Palette.dim, fontSize = BODY)
+        is RankUi.Ready -> {
+            if (rank.top.isEmpty()) Text("아직 이 곡의 기록이 없습니다. 첫 번째가 되어 보세요.", color = Palette.dim, fontSize = BODY)
+            rank.top.forEach { e ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (e.mine) Palette.surfaceHi else Palette.surface)
+                        .padding(horizontal = 28.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("${e.rank}위", color = if (e.rank == 1) Palette.accent else Palette.sub, fontSize = BODY, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.widthIn(min = 100.dp))
+                    Text(e.nickname + if (e.mine) " (나)" else "", color = Palette.text, fontSize = BODY, modifier = Modifier.weight(1f),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${e.score}점", color = Palette.text, fontSize = BODY, fontWeight = FontWeight.Bold)
+                }
+            }
+            val me = rank.myRank
+            Text(
+                when {
+                    !uploading -> "설정에서 「전국 랭킹에 올리기」를 켜면 내 최고 점수도 여기에 올라갑니다."
+                    me == null -> "이 곡을 끝까지 부르면 내 점수가 올라갑니다."
+                    else -> "내 순위 ${me}위 / ${rank.total}명"
+                },
+                color = Palette.sub, fontSize = 26.sp,
+            )
+        }
+        RankUi.NotConfigured -> Unit
     }
 }
 
@@ -432,6 +502,9 @@ data class SettingsUi(
     val safetyReturn: Boolean,
     val countIn: Boolean,
     val scoring: Boolean,
+    val rankUpload: Boolean,
+    val nickname: String,
+    val rankConfigured: Boolean,
     val invertSeat: Boolean,
     val rearSeatsUnreadable: Boolean,
     val passengerUnreadable: Boolean,
@@ -447,6 +520,8 @@ fun SettingsTab(
     onSafety: (Boolean) -> Unit,
     onCountIn: (Boolean) -> Unit,
     onScoring: (Boolean) -> Unit,
+    onRankUpload: (Boolean) -> Unit,
+    onNickname: (String) -> Unit,
     onInvert: (Boolean) -> Unit,
     onClear: () -> Unit,
 ) {
@@ -459,6 +534,10 @@ fun SettingsTab(
         SettingSwitch("안전 장치", "후진하거나 방향지시등을 켜면 가수 목소리를 잠깐 돌려놓습니다", s.safetyReturn, onSafety)
         SettingSwitch("첫 소절 박자 세기", "노래방일 때 첫 소절 바로 앞에서 드럼 스틱으로 탁, 탁, 탁, 탁 박자를 세어 줍니다", s.countIn, onCountIn)
         SettingSwitch("노래 점수(마이크)", "혼자만의 노래방일 때만 마이크로 음높이를 듣고 100점 만점으로 매깁니다. 소리는 저장하지 않습니다", s.scoring, onScoring)
+        if (s.rankConfigured) {
+            SettingSwitch("전국 랭킹에 올리기", "별명과 곡별 최고 점수만 보냅니다. 소리, 차 신호, 주행 기록은 보내지 않습니다", s.rankUpload, onRankUpload)
+            NicknameRow(s.nickname, onNickname)
+        }
         SettingSwitch("착석 값 뒤집기", "Pleos Connect Emulator 2.1.0은 착석 값이 반대로 옵니다. 실제 차에서 반대로 동작하면 끄세요", s.invertSeat, onInvert)
         if (s.passengerUnreadable) Text("이 차는 동승석 착석을 읽을 수 없어 이 기능이 열리지 않습니다", color = Palette.danger, fontSize = BODY)
         if (s.rearSeatsUnreadable) Text("이 차는 뒷좌석 착석을 읽을 수 없어 뒷좌석은 비어 있다고 봅니다", color = Palette.sub, fontSize = BODY)
@@ -471,10 +550,35 @@ fun SettingsTab(
             }
         }
         Text(
-            if (s.scoring) "기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. 마이크는 노래 점수를 켰을 때, 혼자만의 노래방에서만 씁니다."
-            else "기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. 마이크를 쓰지 않습니다.",
+            (if (s.rankUpload) "전국 랭킹에는 별명과 곡별 최고 점수만 보냅니다. 그 밖의 기록은 이 차 안에만 저장됩니다. "
+            else "기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. ") +
+                (if (s.scoring) "마이크는 노래 점수를 켰을 때, 혼자만의 노래방에서만 씁니다." else "마이크를 쓰지 않습니다."),
             color = Palette.dim, fontSize = 24.sp,
         )
+    }
+}
+
+@Composable
+private fun NicknameRow(nickname: String, onSave: (String) -> Unit) {
+    var editing by remember { mutableStateOf(false) }
+    var text by remember(nickname) { mutableStateOf(nickname) }
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.surface).padding(horizontal = 28.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("랭킹 별명", color = Palette.text, fontSize = BODY, modifier = Modifier.widthIn(min = 200.dp))
+        if (!editing) {
+            Text(nickname, color = Palette.accent, fontSize = BODY, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            PillButton("바꾸기", { editing = true })
+        } else {
+            OutlinedTextField(
+                value = text, onValueChange = { text = it.take(12) }, singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(color = Palette.text, fontSize = BODY),
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(16.dp))
+            PillButton("저장", { if (text.isNotBlank()) { onSave(text.trim()); editing = false } }, Palette.accent, Palette.bg)
+        }
     }
 }
 

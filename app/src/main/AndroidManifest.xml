@@ -11,6 +11,8 @@
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
     <!-- 노래 점수: 혼자만의 노래방일 때만, 사용자가 설정에서 켠 뒤에 쓴다. 소리는 저장하지 않는다. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 전국 랭킹: 사용자가 설정에서 켠 뒤에만 별명과 곡별 최고 점수를 보낸다. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 

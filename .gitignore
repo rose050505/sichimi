@@ -15,6 +15,7 @@ local.properties
 *.keystore
 keystore.properties
 signing.properties
+app/google-services.json
 
 # 임시 음원 (제출물에 남기지 않는다)
 songs/temp-*/

@@ -28,6 +28,7 @@ import app.sichimi.ui.ParkedTab
 import app.sichimi.ui.PlayerConnection
 import app.sichimi.ui.QueueTab
 import app.sichimi.ui.LastScoreUi
+import app.sichimi.ui.RankUi
 import app.sichimi.ui.RecordsTab
 import app.sichimi.ui.ScoreRowUi
 import app.sichimi.ui.ScoresTab
@@ -130,10 +131,31 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
         scoresContent = {
             val last by graph.coach.lastResult.collectAsStateWithLifecycle()
             val rows by graph.db.dao().scoreRows().collectAsState(initial = emptyList())
+            val version by graph.coach.rankVersion.collectAsStateWithLifecycle()
+            val allSongs = remember { graph.songs.songs().map { it.id to it.title } }
+            var rankSong by rememberSaveable { mutableStateOf<String?>(null) }
+            val shown = rankSong ?: last?.songId ?: allSongs.firstOrNull()?.first
+            var rank by remember { mutableStateOf<RankUi>(RankUi.Loading) }
+            LaunchedEffect(shown, version) {
+                rank = when {
+                    !graph.ranking.configured -> RankUi.NotConfigured
+                    shown == null -> RankUi.Ready(emptyList(), null, 0)
+                    else -> {
+                        rank = RankUi.Loading
+                        runCatching { graph.ranking.ranking(shown) }
+                            .fold({ RankUi.Ready(it.top, it.myRank, it.total) }, { RankUi.Failed })
+                    }
+                }
+            }
             ScoresTab(
                 scoring = settings.scoring,
                 last = last?.let { LastScoreUi(it.title, it.score, it.finished, it.previousBest) },
                 rows = rows.map { ScoreRowUi(graph.songs.find(it.songId)?.title ?: it.songId, it.best, it.last, it.times) },
+                rankSongs = allSongs,
+                rankSong = shown,
+                onRankSong = { rankSong = it },
+                rank = rank,
+                uploading = settings.rankUpload,
             )
         },
         settingsContent = {
@@ -146,6 +168,9 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                     safetyReturn = settings.safetyReturn,
                     countIn = settings.countIn,
                     scoring = settings.scoring,
+                    rankUpload = settings.rankUpload,
+                    nickname = settings.nickname,
+                    rankConfigured = graph.ranking.configured,
                     invertSeat = settings.invertSeatOccupancy,
                     rearSeatsUnreadable = listOf(Zone.REAR_LEFT, Zone.REAR_RIGHT).any { gate.cabin.seats[it] == Reading.Unsupported },
                     passengerUnreadable = gate.cabin.seats[Zone.FRONT_RIGHT] == Reading.Unsupported,
@@ -157,6 +182,14 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                 onSafety = { v -> graph.settings.update { it.copy(safetyReturn = v) } },
                 onCountIn = { v -> graph.settings.update { it.copy(countIn = v) } },
                 onScoring = setScoring,
+                onRankUpload = { v ->
+                    graph.settings.update { it.copy(rankUpload = v) }
+                    if (v) graph.coach.uploadAllBests()
+                },
+                onNickname = { v ->
+                    graph.settings.update { it.copy(nickname = v) }
+                    if (settings.rankUpload) graph.coach.uploadAllBests()
+                },
                 onInvert = { v -> graph.settings.update { it.copy(invertSeatOccupancy = v) } },
                 onClear = graph.controller::clearRecords,
             )

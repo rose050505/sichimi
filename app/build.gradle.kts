@@ -17,6 +17,21 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
+
+        // 전국 랭킹(Firebase, REST로 부른다). app/google-services.json(저장소에 넣지 않음)이 있으면 프로젝트 ID와 API 키를 읽는다.
+        // 없으면 빈 값이고, 앱은 랭킹을 "연결 안 됨"으로 두고 나머지는 그대로 동작한다.
+        val gs = file("google-services.json")
+        var rankProject = ""
+        var rankKey = ""
+        if (gs.exists()) {
+            @Suppress("UNCHECKED_CAST")
+            val j = groovy.json.JsonSlurper().parse(gs) as Map<String, Any?>
+            rankProject = (j["project_info"] as Map<String, Any?>)["project_id"] as String
+            val client = (j["client"] as List<Map<String, Any?>>).first()
+            rankKey = ((client["api_key"] as List<Map<String, Any?>>).first())["current_key"] as String
+        }
+        buildConfigField("String", "RANK_PROJECT", "\"$rankProject\"")
+        buildConfigField("String", "RANK_API_KEY", "\"$rankKey\"")
     }
 
     useLibrary("android.car")
@@ -45,7 +60,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
     sourceSets["main"].assets.srcDirs("../songs")
     // 개발용 임시 음원은 songs-dev/에 두고 debug 빌드에만 넣는다(release APK에는 들어가지 않는다).
     sourceSets["debug"].assets.srcDirs("../songs-dev")

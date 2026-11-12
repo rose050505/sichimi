@@ -13,6 +13,7 @@ import app.sichimi.data.SongScore
 import app.sichimi.gate.GateState
 import app.sichimi.gate.PitchRef
 import app.sichimi.gate.SingScore
+import app.sichimi.rank.RankingClient
 import app.sichimi.settings.SettingsStore
 import app.sichimi.songs.SongSource
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +48,7 @@ class SingCoach(
     private val songs: SongSource,
     private val dao: RecordDao,
     private val announcer: Announcer,
+    private val ranking: RankingClient,
     private val positionMs: () -> Long,
 ) {
     private val main = Handler(Looper.getMainLooper())
@@ -138,8 +140,29 @@ class SingCoach(
                 coverage = c.score.coverage, finished = finished))
             _last.value = ScoreResult(c.songId, title, score, finished, best)
             if (karaokeNow && finished) announcer.say(line(title, score, best))
+            if (finished && (best == null || score > best)) upload(c.songId, score)
         }
     }
+
+    /** 전국 랭킹에 올린다(설정에서 켰고 서버가 설정돼 있을 때만). 실패해도 점수 기록에는 영향이 없다. */
+    private suspend fun upload(songId: String, score: Int) {
+        val s = settings.state.value
+        if (!s.rankUpload || !ranking.configured) return
+        runCatching { ranking.submit(songId, s.nickname, score) }
+            .onFailure { Log.w(TAG, "랭킹 올리기 실패: $it") }
+        _rankVersion.value++
+    }
+
+    /** 랭킹 올리기를 켜거나 별명을 바꿨을 때 곡별 최고 점수를 모두 올린다. */
+    fun uploadAllBests() {
+        scope.launch {
+            for (row in dao.bestScores()) upload(row.songId, row.best)
+        }
+    }
+
+    /** 랭킹을 올릴 때마다 바뀐다. 화면이 랭킹을 다시 읽는 신호. */
+    private val _rankVersion = MutableStateFlow(0)
+    val rankVersion: StateFlow<Int> = _rankVersion.asStateFlow()
 
     companion object {
         const val TAG = "SC.Score"

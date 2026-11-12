@@ -1,0 +1,23 @@
+rules_version = '2';
+// 시치미 전국 랭킹 보안 규칙. Firebase 콘솔 → Firestore Database → 규칙 탭에 붙여 넣고 "게시"한다.
+// - 누구나 읽을 수 있다(랭킹 보기).
+// - 쓰기는 익명 로그인한 사람이 자기 uid 문서에만, 앱에 든 세 곡에만 할 수 있다.
+// - 점수는 0~100 정수, 별명은 1~12자, 필드는 nickname·score·at만.
+// - 지우기는 막는다.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rank/{songId}/scores/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && songId in ['01-arirang', '02-destroy', '03-wade']
+        && request.resource.data.keys().hasOnly(['nickname', 'score', 'at'])
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0 && request.resource.data.score <= 100
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 1 && request.resource.data.nickname.size() <= 12
+        && request.resource.data.at is timestamp;
+      allow delete: if false;
+    }
+  }
+}

@@ -22,6 +22,10 @@ data class AppSettings(
     val countIn: Boolean = true,
     /** 노래 점수(마이크). 혼자만의 노래방일 때만 마이크를 켠다. 동의를 받고 켜므로 기본은 끔. */
     val scoring: Boolean = false,
+    /** 전국 랭킹에 별명과 곡별 최고 점수를 올린다. 기본은 끔. */
+    val rankUpload: Boolean = false,
+    /** 랭킹에 보일 별명(1~12자). */
+    val nickname: String = "",
 ) {
     fun toGateConfig() = GateConfig(
         enabled = enabled,
@@ -47,6 +51,8 @@ class SettingsStore(context: Context) {
         invertSeatOccupancy = prefs.getBoolean("invertSeatOccupancy", true),
         countIn = prefs.getBoolean("countIn", true),
         scoring = prefs.getBoolean("scoring", false),
+        rankUpload = prefs.getBoolean("rankUpload", false),
+        nickname = prefs.getString("nickname", null) ?: "운전자${(1000..9999).random()}".also { prefs.edit().putString("nickname", it).apply() },
     )
 
     fun update(change: (AppSettings) -> AppSettings) {
@@ -60,6 +66,8 @@ class SettingsStore(context: Context) {
             .putBoolean("invertSeatOccupancy", next.invertSeatOccupancy)
             .putBoolean("countIn", next.countIn)
             .putBoolean("scoring", next.scoring)
+            .putBoolean("rankUpload", next.rankUpload)
+            .putString("nickname", next.nickname)
             .apply()
         _state.value = next
     }
