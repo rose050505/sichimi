@@ -1,0 +1,6 @@
+--------- beginning of main
+11-11 16:46:54.557  6603  6603 I SC.Gate : 주행 시작 id=7
+11-11 16:47:00.980  6603  6603 I SC.Gate : 상태 NORMAL -> ARMING
+11-11 16:47:00.989  6603  6658 I SC.Mixer: 입력 5채널 48000Hz enc=2
+11-11 16:47:05.982  6603  6603 I SC.Gate : 상태 ARMING -> KARAOKE
+11-11 16:47:05.982  6603  6603 I SC.Gate : 가수 음량 -> 0.2 (600ms) seq=1

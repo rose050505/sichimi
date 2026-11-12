@@ -119,6 +119,7 @@ private fun App(graph: Graph, connection: PlayerConnection) {
                     dwellSeconds = settings.dwellSeconds,
                     windowThresholdPct = settings.windowThresholdPct,
                     safetyReturn = settings.safetyReturn,
+                    countIn = settings.countIn,
                     invertSeat = settings.invertSeatOccupancy,
                     rearSeatsUnreadable = listOf(Zone.REAR_LEFT, Zone.REAR_RIGHT).any { gate.cabin.seats[it] == Reading.Unsupported },
                     passengerUnreadable = gate.cabin.seats[Zone.FRONT_RIGHT] == Reading.Unsupported,
@@ -128,6 +129,7 @@ private fun App(graph: Graph, connection: PlayerConnection) {
                 onDwell = { v -> graph.settings.update { it.copy(dwellSeconds = v) } },
                 onWindow = { v -> graph.settings.update { it.copy(windowThresholdPct = v) } },
                 onSafety = { v -> graph.settings.update { it.copy(safetyReturn = v) } },
+                onCountIn = { v -> graph.settings.update { it.copy(countIn = v) } },
                 onInvert = { v -> graph.settings.update { it.copy(invertSeatOccupancy = v) } },
                 onClear = graph.controller::clearRecords,
             )

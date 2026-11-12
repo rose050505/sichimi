@@ -21,6 +21,7 @@ import app.sichimi.gate.Reading
 import app.sichimi.gate.SoloLedger
 import app.sichimi.gate.isSealed
 import app.sichimi.gate.isSolo
+import app.sichimi.gate.CountIn
 import app.sichimi.settings.AppSettings
 import app.sichimi.settings.SettingsStore
 import app.sichimi.vehicle.CabinReadings
@@ -149,6 +150,7 @@ class GateController(
             }
             is GateEffect.Exposure -> recordExposure(e, lastRampSeq)
         }
+        mixer.setCountInAudible(CountIn.audible(gate.state, settings.state.value.countIn))
         val cabin = gate.input
         _ui.value = GateUi(
             state = gate.state,

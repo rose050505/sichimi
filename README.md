@@ -21,7 +21,7 @@
 | 항목 | 이 앱에서 | 증거 |
 |---|---|---|
 | 차량특화성 | 좌석 착석·문·창문·기어·방향지시등 신호로 "혼자이고 닫힌 차"를 판정하는 문지기(상태 기계). 휴대폰에서는 알 수 없는 차 안 상황에만 열린다 | 아래 [문지기와 신호](#문지기와-신호), 상태 기계 [`gate/`](gate/src/main/kotlin/app/sichimi/gate/PrivacyGate.kt) |
-| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션 | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G4와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 상태 기계 단위 테스트 63개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
+| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션 | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G4와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 상태 기계 단위 테스트 66개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
 | 창의성 | 노래방을 사용자가 켜지 않는다. 동승자가 타거나 문·창문이 열리면 앱이 먼저 시치미를 뗀다. 혼자가 아닐 때는 화면 어디에도 "노래방"이 없다 | 장면 2·3 스크린샷 [`docs/evidence/scenes/`](docs/evidence/scenes/) |
 
 ## 문지기와 신호
@@ -43,6 +43,7 @@
 | 잠시 복귀 | 100% | 노래방 중 후진·방향지시등. 끝나고 1.5초 뒤 다시 노래방 |
 
 - 문이 열리면 0.12초 램프로 가수 음량을 올립니다. 신호에서 안드로이드 출력까지 약 0.25초입니다(검증기록 G2).
+- 노래방일 때는 곡의 첫 소절 바로 앞 네 박에 딸깍 소리로 박자를 세어 줍니다(설정 「첫 소절 박자 세기」, 기본 켬). 딸깍은 곡 파일의 다섯 번째 채널이라 곡 박자와 표본 단위로 맞고, 혼자가 아니게 되면 가수 목소리와 함께 바로 빠집니다(검증기록 "박자 세기").
 - 스스로 재생을 시작하지 않습니다. 사용자가 재생한 곡의 가수 음량만 바꿉니다.
 - 주행 중(기어 P가 아니거나 주행 규제)에는 상태·곡·버튼 셋만 있는 화면입니다. 가사와 목록은 주차 중에만 보입니다.
 
@@ -67,7 +68,7 @@
 
 ## APK
 
-`apk/Graphite_Sichimi_release.apk` (release 빌드, 66MB). 이 APK로 장면 1~8을 에뮬레이터에서 확인했습니다([검증기록](docs/검증기록.md)의 release 절).
+`apk/Graphite_Sichimi_release.apk` (release 빌드, 62MB). 이 APK로 장면 1~6, 8과 박자 세기를 에뮬레이터에서 확인했습니다. 장면 7은 바로 앞 release APK로 확인했고, 이번에는 에뮬레이터 내비가 열리지 않아 다시 돌리지 못했습니다([검증기록](docs/검증기록.md)의 release 절과 박자 세기 절).
 
 직접 빌드하려면:
 
@@ -80,14 +81,14 @@ release 서명은 저장소 밖의 키를 `keystore.properties`(저장소에 넣
 
 ## 음원
 
-곡 목록과 출처·라이선스는 [NOTICE.md](NOTICE.md)에 있습니다. 곡마다 반주와 보컬 두 갈래(스템)를 4채널 FLAC 한 파일에 담아 두 갈래가 어긋나지 않게 합니다(`tools/pack_stems.py`).
+곡 목록과 출처·라이선스는 [NOTICE.md](NOTICE.md)에 있습니다. 곡마다 반주(좌·우), 보컬(좌·우), 박자 세기 딸깍을 5채널 Opus 한 파일(`mix5.ogg`)에 담아 서로 어긋나지 않게 합니다(`tools/pack_stems.py`, 딸깍은 `tools/count_in.py`).
 
 ## 구조
 
 ```
-gate/   순수 Kotlin. 문지기 상태 기계(PrivacyGate), 혼자 부른 시간 장부(SoloLedger), 마지막 곡 규칙(LastSongCue)과 단위 테스트
+gate/   순수 Kotlin. 문지기 상태 기계(PrivacyGate), 혼자 부른 시간 장부(SoloLedger), 마지막 곡 규칙(LastSongCue), 박자 세기 규칙(CountIn)과 단위 테스트
 app/    Android 앱. 차 신호, 문지기 연결, 스템 믹서, Media3 재생 서비스, Room 기록, Compose 화면, 내비·TTS
-tools/  가상 콘솔 조작(console.py), 관문·장면 검증 스크립트, 스템 묶기
+tools/  가상 콘솔 조작(console.py), 관문·장면 검증 스크립트, 스템 묶기, 가사 초안, 박자 세기 트랙
 docs/   검증기록과 증거(스크린샷, 로그)
 ```
 

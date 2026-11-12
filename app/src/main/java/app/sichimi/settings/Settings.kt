@@ -18,6 +18,8 @@ data class AppSettings(
     val safetyReturn: Boolean = true,
     /** 착석 값 뒤집기. Pleos Connect Emulator 2.1.0에서는 반전돼 오므로 기본으로 켠다(검증기록 G1). */
     val invertSeatOccupancy: Boolean = true,
+    /** 첫 소절 앞 박자 세기(카운트인). 노래방일 때만 들린다. */
+    val countIn: Boolean = true,
 ) {
     fun toGateConfig() = GateConfig(
         enabled = enabled,
@@ -41,6 +43,7 @@ class SettingsStore(context: Context) {
         windowThresholdPct = prefs.getInt("windowThresholdPct", 2),
         safetyReturn = prefs.getBoolean("safetyReturn", true),
         invertSeatOccupancy = prefs.getBoolean("invertSeatOccupancy", true),
+        countIn = prefs.getBoolean("countIn", true),
     )
 
     fun update(change: (AppSettings) -> AppSettings) {
@@ -52,6 +55,7 @@ class SettingsStore(context: Context) {
             .putInt("windowThresholdPct", next.windowThresholdPct)
             .putBoolean("safetyReturn", next.safetyReturn)
             .putBoolean("invertSeatOccupancy", next.invertSeatOccupancy)
+            .putBoolean("countIn", next.countIn)
             .apply()
         _state.value = next
     }

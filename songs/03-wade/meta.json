@@ -4,5 +4,15 @@
   "durationMs": 185502,
   "source": "https://www.joshwoodward.com/song/Wade",
   "license": "CC BY 4.0. Demucs로 보컬과 반주를 나눔",
-  "credit": "joshwoodward.com · CC BY 4.0 · 보컬/반주 분리"
+  "credit": "joshwoodward.com · CC BY 4.0 · 보컬/반주 분리",
+  "countIn": {
+    "bpm": 78.3,
+    "vocalAtMs": 16040,
+    "clicksMs": [
+      13189,
+      13967,
+      14733,
+      15499
+    ]
+  }
 }
