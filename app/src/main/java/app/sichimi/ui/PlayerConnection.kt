@@ -70,6 +70,9 @@ class PlayerConnection(private val context: Context, private val songs: SongSour
         if (c.isPlaying) c.pause() else c.play()
     }
 
+    /** 메인 재생을 멈춘다(녹음 듣기를 시작할 때). */
+    fun pause() { controller?.pause() }
+
     fun next() = controller?.let { if (it.hasNextMediaItem()) it.seekToNextMediaItem() }
     fun previous() = controller?.seekToPrevious()
 

@@ -3,7 +3,10 @@ rules_version = '2';
 // - 누구나 읽을 수 있다(랭킹 보기).
 // - 쓰기는 익명 로그인한 사람이 자기 uid 문서에만, 앱에 든 세 곡에만 할 수 있다.
 // - 점수는 0~100 정수, 별명은 1~12자, 필드는 nickname·score·at만.
-// - 지우기는 막는다.
+// - 점수 지우기는 막는다.
+// - 녹음(takes): 점수 문서와 따로 둔다(랭킹 목록을 읽을 때 소리까지 받지 않게).
+//   누구나 들을 수 있다. 쓰기와 지우기는 본인 uid 문서만. 쓰기는 앱에 든 세 곡만, 그 곡의 내 점수 문서가 있을 때만.
+//   필드는 audio·score·startMs·lengthMs·at 다섯 개만(모두 있어야 함), 녹음은 900,000바이트 이하.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /rank/{songId}/scores/{uid} {
@@ -18,6 +21,25 @@ service cloud.firestore {
         && request.resource.data.nickname.size() >= 1 && request.resource.data.nickname.size() <= 12
         && request.resource.data.at is timestamp;
       allow delete: if false;
+    }
+    match /rank/{songId}/takes/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && songId in ['01-arirang', '02-destroy', '03-wade']
+        && request.resource.data.keys().hasOnly(['audio', 'score', 'startMs', 'lengthMs', 'at'])
+        && request.resource.data.keys().hasAll(['audio', 'score', 'startMs', 'lengthMs', 'at'])
+        && request.resource.data.audio is bytes
+        && request.resource.data.audio.size() > 0 && request.resource.data.audio.size() <= 900000
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0 && request.resource.data.score <= 100
+        && request.resource.data.startMs is int
+        && request.resource.data.startMs >= 0 && request.resource.data.startMs <= 600000
+        && request.resource.data.lengthMs is int
+        && request.resource.data.lengthMs > 0 && request.resource.data.lengthMs <= 420000
+        && request.resource.data.at is timestamp
+        && exists(/databases/$(database)/documents/rank/$(songId)/scores/$(uid));
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }

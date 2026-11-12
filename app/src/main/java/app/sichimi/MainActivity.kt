@@ -35,6 +35,8 @@ import app.sichimi.ui.ScoresTab
 import app.sichimi.ui.SettingsTab
 import app.sichimi.ui.SettingsUi
 import app.sichimi.ui.SongRow
+import app.sichimi.ui.MyTakeUi
+import app.sichimi.ui.TakeActions
 import app.sichimi.ui.minutesText
 import app.sichimi.ui.secondsText
 import kotlinx.coroutines.flow.combine
@@ -134,11 +136,16 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
             val last by graph.coach.lastResult.collectAsStateWithLifecycle()
             val rows by graph.db.dao().scoreRows().collectAsState(initial = emptyList())
             val version by graph.coach.rankVersion.collectAsStateWithLifecycle()
+            val takeVersion by graph.uploader.version.collectAsStateWithLifecycle()
+            val localTakes by graph.takes.takes.collectAsStateWithLifecycle()
+            val takeStatus by graph.uploader.status.collectAsStateWithLifecycle()
+            val play by graph.takePlayer.state.collectAsStateWithLifecycle()
+            val takeWorking by graph.coach.takeWorking.collectAsStateWithLifecycle()
             val allSongs = remember { graph.songs.songs().map { it.id to it.title } }
             var rankSong by rememberSaveable { mutableStateOf<String?>(null) }
             val shown = rankSong ?: last?.songId ?: allSongs.firstOrNull()?.first
             var rank by remember { mutableStateOf<RankUi>(RankUi.Loading) }
-            LaunchedEffect(shown, version) {
+            LaunchedEffect(shown, version, takeVersion) {
                 rank = when {
                     !graph.ranking.configured -> RankUi.NotConfigured
                     shown == null -> RankUi.Ready(emptyList(), null, 0)
@@ -158,9 +165,39 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                 onRankSong = { rankSong = it },
                 rank = rank,
                 uploading = settings.rankUpload,
+                recording = settings.rankUpload && graph.ranking.configured,
+                myTakes = localTakes.map { t ->
+                    MyTakeUi(t.songId, graph.songs.find(t.songId)?.title ?: t.songId, t.score, t.lengthMs, t.bitrate / 1000,
+                        (t.bytes + 999) / 1000, t.cut, t.uploadedAt != null, takeStatus[t.songId])
+                },
+                play = play,
+                takeWorking = takeWorking,
+                takeActions = TakeActions(
+                    playMine = { id ->
+                        val song = graph.songs.find(id)
+                        val t = graph.takes.find(id)
+                        if (song != null && t != null) {
+                            connection.pause()
+                            graph.takePlayer.play("mine:$id", song) { (graph.takes.bytes(id) ?: error("파일 없음")) to t.startMs }
+                        }
+                    },
+                    playOther = { id, e ->
+                        graph.songs.find(id)?.let { song ->
+                            connection.pause()
+                            graph.takePlayer.play("$id/${e.uid}", song) {
+                                val (meta, bytes) = graph.ranking.fetchTake(id, e.uid)
+                                bytes to meta.startMs
+                            }
+                        }
+                    },
+                    stop = graph.takePlayer::stop,
+                    upload = graph.uploader::upload,
+                    delete = { id -> if (graph.takePlayer.state.value.key == "mine:$id") graph.takePlayer.stop(); graph.uploader.delete(id) },
+                ),
             )
         },
         settingsContent = {
+            var serverTakesStatus by remember { mutableStateOf<String?>(null) }
             SettingsTab(
                 SettingsUi(
                     enabled = settings.enabled,
@@ -193,7 +230,14 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                     if (settings.rankUpload) graph.coach.uploadAllBests()
                 },
                 onInvert = { v -> graph.settings.update { it.copy(invertSeatOccupancy = v) } },
-                onClear = graph.controller::clearRecords,
+                onClear = { graph.controller.clearRecords(); graph.takePlayer.stop(); graph.takes.deleteAll() },
+                onDeleteServerTakes = if (graph.ranking.configured) ({
+                    serverTakesStatus = "지우는 중…"
+                    graph.uploader.deleteAllOnServer(graph.songs.songs().map { it.id }) { ok ->
+                        serverTakesStatus = if (ok) "서버의 내 녹음을 모두 지웠습니다" else "일부를 지우지 못했습니다. 네트워크를 확인하고 다시 눌러 주세요"
+                    }
+                }) else null,
+                serverTakesStatus = serverTakesStatus,
             )
         },
     )

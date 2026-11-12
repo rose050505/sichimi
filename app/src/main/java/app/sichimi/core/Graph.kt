@@ -6,7 +6,11 @@ import app.sichimi.audio.StemMixProcessor
 import app.sichimi.data.RecordDb
 import app.sichimi.gate.LastSongCue
 import app.sichimi.navi.NaviRemaining
+import app.sichimi.audio.TakeAllowance
+import app.sichimi.audio.TakePlayer
 import app.sichimi.rank.RankingClient
+import app.sichimi.rank.TakeStore
+import app.sichimi.rank.TakeUploader
 import app.sichimi.settings.SettingsStore
 import app.sichimi.songs.AssetSongSource
 import app.sichimi.songs.SongSource
@@ -34,7 +38,12 @@ class Graph(app: Application) {
 
     val controller = GateController(app, scope, signals, settings, mixer, db.dao()) { positionProvider() }
     val ranking = RankingClient(app)
-    val coach = SingCoach(app, scope, controller, settings, songs, db.dao(), announcer, ranking) { positionProvider() }
+    val takes = TakeStore(app)
+    val uploader = TakeUploader(scope, ranking, takes, settings)
+    val coach = SingCoach(app, scope, controller, settings, songs, db.dao(), announcer, ranking, takes) { positionProvider() }
+    /** 녹음 듣기. 기어 P·주행 규제 없음·혼자일 때만 튼다. */
+    val takePlayer = TakePlayer(app, scope,
+        combine(controller.ui, restrictions.requiresDistractionOptimization) { ui, rdo -> TakeAllowance(ui.gear, rdo, ui.solo) })
 
     fun start() {
         signals.start()
@@ -43,6 +52,7 @@ class Graph(app: Application) {
         navi.start()
         announcer.start()
         coach.start()
+        takePlayer.start()
         // 마지막 곡: 내비 남은 시간이 3분대이고 혼자만의 노래방이면 한 줄을 한 번 말한다.
         combine(navi.remainSec, controller.ui) { remain, ui -> lastSong.update(remain, ui.state) }
             .onEach { line -> if (line != null) announcer.say(line) }

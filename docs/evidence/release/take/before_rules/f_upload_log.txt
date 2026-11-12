@@ -1,0 +1,16 @@
+--------- beginning of main
+11-11 23:05:05.673 W/SC.Take (30658): 녹음 올리기 실패: app.sichimi.rank.RankingClient$RankException: HTTP 403 {
+11-11 23:05:05.673 W/SC.Take (30658):   "error": {
+11-11 23:05:05.673 W/SC.Take (30658):     "code": 403,
+11-11 23:05:05.673 W/SC.Take (30658):     "message": "Missing or insufficient permissions.",
+11-11 23:05:05.673 W/SC.Take (30658):     "status": "PERMISSION_DENIED"
+11-11 23:05:05.673 W/SC.Take (30658):   }
+11-11 23:05:05.673 W/SC.Take (30658): }
+11-11 23:05:05.776 W/SC.Rank (30658): 녹음 목록 읽기 실패: app.sichimi.rank.RankingClient$RankException: HTTP 403 [{
+11-11 23:05:05.776 W/SC.Rank (30658):   "error": {
+11-11 23:05:05.776 W/SC.Rank (30658):     "code": 403,
+11-11 23:05:05.776 W/SC.Rank (30658):     "message": "Missing or insufficient permissions.",
+11-11 23:05:05.776 W/SC.Rank (30658):     "status": "PERMISSION_DENIED"
+11-11 23:05:05.776 W/SC.Rank (30658):   }
+11-11 23:05:05.776 W/SC.Rank (30658): }
+11-11 23:05:05.776 W/SC.Rank (30658): ]

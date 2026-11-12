@@ -1,0 +1,5 @@
+--------- beginning of main
+11-11 23:04:07.040 I/SC.TakePlay(30658): 녹음 듣기 시작: mine:01-arirang 곡 1564ms부터, 목소리 4564~200980ms
+11-11 23:04:12.171 I/SC.TakePlay(30658): 녹음 듣기 멈춤: 기어=DRIVE 주행규제=false 혼자=true
+11-11 23:04:12.178 I/SC.Gate (30658): 주행 시작 id=5
+11-11 23:04:14.553 I/SC.Gate (30658): 주행 끝 id=5 solo=0ms 곡=0 들킬뻔=0

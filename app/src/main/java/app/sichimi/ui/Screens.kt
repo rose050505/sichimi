@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.sichimi.gate.GateState
+import app.sichimi.audio.TakePlayUi
 import app.sichimi.rank.RankEntry
 import app.sichimi.songs.LyricLine
 import kotlinx.coroutines.delay
@@ -396,6 +397,11 @@ fun ScoresTab(
     onRankSong: (String) -> Unit,
     rank: RankUi,
     uploading: Boolean,
+    recording: Boolean = false,
+    myTakes: List<MyTakeUi> = emptyList(),
+    play: TakePlayUi = TakePlayUi(),
+    takeActions: TakeActions? = null,
+    takeWorking: String? = null,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (!scoring) {
@@ -431,12 +437,90 @@ fun ScoresTab(
                 }
             }
         }
-        RankSection(rankSongs, rankSong, onRankSong, rank, uploading)
+        if ((recording || myTakes.isNotEmpty()) && takeActions != null) MyTakesSection(myTakes, play, takeActions, recording, takeWorking)
+        RankSection(rankSongs, rankSong, onRankSong, rank, uploading, play, takeActions)
+    }
+}
+
+// ---------- 내 녹음 ----------
+
+/** 차 안에 둔 내 녹음 한 줄. */
+data class MyTakeUi(
+    val songId: String, val title: String, val score: Int, val lengthMs: Long, val kbps: Int, val kb: Int,
+    val cut: Boolean, val uploaded: Boolean, val status: String?,
+)
+
+/** 녹음 듣기·올리기·지우기. 화면은 주차하고 혼자일 때만 보인다(점수 탭). */
+class TakeActions(
+    val playMine: (songId: String) -> Unit,
+    val playOther: (songId: String, entry: RankEntry) -> Unit,
+    val stop: () -> Unit,
+    val upload: (songId: String) -> Unit,
+    val delete: (songId: String) -> Unit,
+)
+
+fun lengthText(ms: Long): String {
+    val s = ms / 1000
+    return if (s < 60) "${s}초" else "${s / 60}분 %02d초".format(s % 60)
+}
+
+@Composable
+private fun MyTakesSection(takes: List<MyTakeUi>, play: TakePlayUi, a: TakeActions, canUpload: Boolean, working: String?) {
+    Spacer(Modifier.height(8.dp))
+    Text("내 녹음 · 최고 기록을 낸 판의 내 목소리", color = Palette.sub, fontSize = 26.sp)
+    if (working != null) Text("방금 부른 곡의 녹음을 정리하는 중입니다…", color = Palette.text, fontSize = BODY)
+    if (takes.isEmpty()) {
+        if (working != null) return
+        Text("아직 없습니다. 한 곡을 끝까지 불러 최고 기록이 되면 그 판의 목소리가 여기에 남습니다(차 안에만).", color = Palette.dim, fontSize = BODY)
+        return
+    }
+    takes.forEach { t ->
+        var confirm by remember(t.songId) { mutableStateOf(false) }
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.surface).padding(horizontal = 28.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("${t.title} · ${t.score}점", color = Palette.text, fontSize = 28.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        "${lengthText(t.lengthMs)} · ${t.kbps}kbps · ${t.kb}KB" + (if (t.cut) " · 앞 7분만" else "") +
+                            if (t.uploaded) " · 전국 랭킹에 공개됨" else " · 차 안에만 있음",
+                        color = if (t.uploaded) Palette.accent else Palette.sub, fontSize = 24.sp,
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                ListenButton("mine:${t.songId}", play, "미리 듣기", { a.playMine(t.songId) }, a.stop)
+                if (!t.uploaded && canUpload) PillButton("녹음 올리기", { a.upload(t.songId) }, Palette.accent, Palette.bg)
+                if (!confirm) PillButton("지우기", { confirm = true }, Palette.surfaceHi, Palette.danger)
+                else {
+                    PillButton(if (t.uploaded) "서버와 차에서 지우기" else "차에서 지우기", { a.delete(t.songId); confirm = false }, Palette.danger, Palette.bg)
+                    PillButton("취소", { confirm = false })
+                }
+            }
+            if (!t.uploaded && canUpload && t.status == null) Text("올리면 전국 랭킹에서 누구나 이 목소리를 들을 수 있습니다. 반주는 올리지 않습니다.", color = Palette.dim, fontSize = 24.sp)
+            t.status?.let { Text(it, color = Palette.text, fontSize = 24.sp) }
+        }
     }
 }
 
 @Composable
-private fun RankSection(songs: List<Pair<String, String>>, selected: String?, onSelect: (String) -> Unit, rank: RankUi, uploading: Boolean) {
+private fun ListenButton(key: String, play: TakePlayUi, idleLabel: String, onPlay: () -> Unit, onStop: () -> Unit) {
+    val mine = play.key == key
+    when {
+        mine && play.phase == TakePlayUi.Phase.PLAYING -> PillButton("정지", onStop, Palette.accent, Palette.bg)
+        mine && play.phase == TakePlayUi.Phase.LOADING -> PillButton("불러오는 중…", onStop)
+        mine && play.phase == TakePlayUi.Phase.FAILED -> PillButton("다시 듣기", onPlay, Palette.surfaceHi, Palette.danger)
+        else -> PillButton(idleLabel, onPlay)
+    }
+}
+
+@Composable
+private fun RankSection(
+    songs: List<Pair<String, String>>, selected: String?, onSelect: (String) -> Unit, rank: RankUi, uploading: Boolean,
+    play: TakePlayUi, actions: TakeActions?,
+) {
     Spacer(Modifier.height(8.dp))
     Text("전국 랭킹", color = Palette.sub, fontSize = 26.sp)
     if (rank == RankUi.NotConfigured) {
@@ -458,6 +542,7 @@ private fun RankSection(songs: List<Pair<String, String>>, selected: String?, on
         RankUi.Failed -> Text("랭킹을 불러오지 못했습니다. 네트워크를 확인해 주세요.", color = Palette.dim, fontSize = BODY)
         is RankUi.Ready -> {
             if (rank.top.isEmpty()) Text("아직 이 곡의 기록이 없습니다. 첫 번째가 되어 보세요.", color = Palette.dim, fontSize = BODY)
+            if (rank.top.any { it.take != null }) Text("「듣기」는 다른 사람이 올린 목소리를 앱에 든 반주 위에 맞춰 틉니다. 주차 중에만 들을 수 있습니다.", color = Palette.dim, fontSize = 24.sp)
             rank.top.forEach { e ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (e.mine) Palette.surfaceHi else Palette.surface)
@@ -469,6 +554,11 @@ private fun RankSection(songs: List<Pair<String, String>>, selected: String?, on
                     Text(e.nickname + if (e.mine) " (나)" else "", color = Palette.text, fontSize = BODY, modifier = Modifier.weight(1f),
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("${e.score}점", color = Palette.text, fontSize = BODY, fontWeight = FontWeight.Bold)
+                    // 녹음이 있으면 듣기(점수 탭은 주차·혼자일 때만 보인다. 재생기도 그때만 튼다)
+                    if (e.take != null && actions != null && selected != null) {
+                        Spacer(Modifier.width(20.dp))
+                        ListenButton("$selected/${e.uid}", play, "듣기 ${lengthText(e.take.lengthMs)}", { actions.playOther(selected, e) }, actions.stop)
+                    }
                 }
             }
             val me = rank.myRank
@@ -525,8 +615,12 @@ fun SettingsTab(
     onNickname: (String) -> Unit,
     onInvert: (Boolean) -> Unit,
     onClear: () -> Unit,
+    onDeleteServerTakes: (() -> Unit)? = null,
+    serverTakesStatus: String? = null,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
+    var confirmRank by remember { mutableStateOf(false) }
+    var confirmServerDelete by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SettingSwitch("혼자일 때 가수 목소리 줄이기", "끄면 평범한 음악 플레이어로만 씁니다", s.enabled, onEnabled)
         SettingChoice("가이드 음량(가수 목소리 남기는 정도)", listOf(0, 10, 20, 30, 40), s.guidePercent, { "$it%" }, onGuide)
@@ -534,10 +628,41 @@ fun SettingsTab(
         SettingChoice("창문 기준(이보다 많이 열리면 닫힘)", listOf(2, 10, 20), s.windowThresholdPct, { "$it%" }, onWindow)
         SettingSwitch("안전 장치", "후진하거나 방향지시등을 켜면 가수 목소리를 잠깐 돌려놓습니다", s.safetyReturn, onSafety)
         SettingSwitch("첫 소절 박자 세기", "노래방일 때 첫 소절 바로 앞에서 드럼 스틱으로 탁, 탁, 탁, 탁 박자를 세어 줍니다", s.countIn, onCountIn)
-        SettingSwitch("노래 점수(마이크)", "혼자만의 노래방일 때만 마이크로 음높이를 듣고 100점 만점으로 매깁니다. 소리는 저장하지 않습니다", s.scoring, onScoring)
+        SettingSwitch("노래 점수(마이크)", "혼자만의 노래방일 때만 마이크로 음높이를 듣고 100점 만점으로 매깁니다. 「전국 랭킹에 올리기」를 켜지 않으면 소리는 저장하지 않습니다", s.scoring, onScoring)
         if (s.rankConfigured) {
-            SettingSwitch("전국 랭킹에 올리기", "별명과 곡별 최고 점수만 보냅니다. 소리, 차 신호, 주행 기록은 보내지 않습니다", s.rankUpload, onRankUpload)
+            // 켤 때는 녹음 공개를 먼저 분명히 알리고 한 번 더 누르게 한다
+            SettingSwitch("전국 랭킹에 올리기", "별명, 곡별 최고 점수, 그리고 내가 고른 녹음을 올립니다. 녹음도 함께 공개됩니다",
+                s.rankUpload, { on -> if (on) confirmRank = true else onRankUpload(false) })
+            if (confirmRank && !s.rankUpload) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.surfaceHi).padding(28.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text("녹음도 함께 공개됩니다", color = Palette.accent, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "켜면 혼자만의 노래방에서 부른 내 목소리를 녹음해 둡니다(반주는 녹음하지 않습니다). 최고 기록을 낸 판의 녹음은 「점수」 탭에서 " +
+                            "미리 들어 보고 「녹음 올리기」를 누르면 서버에 공개로 저장되어, 전국 랭킹에서 누구나 들을 수 있습니다. " +
+                            "올린 녹음은 「점수」 탭이나 이 설정에서 언제든 지울 수 있습니다.",
+                        color = Palette.text, fontSize = BODY,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        PillButton("알겠습니다, 켜기", { onRankUpload(true); confirmRank = false }, Palette.accent, Palette.bg)
+                        PillButton("취소", { confirmRank = false })
+                    }
+                }
+            }
             NicknameRow(s.nickname, onNickname)
+            if (onDeleteServerTakes != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    if (!confirmServerDelete) PillButton("서버의 내 녹음 모두 지우기", { confirmServerDelete = true }, Palette.surface, Palette.danger)
+                    else {
+                        Text("서버에 올린 내 녹음을 모두 지울까요?", color = Palette.text, fontSize = BODY)
+                        PillButton("지우기", { onDeleteServerTakes(); confirmServerDelete = false }, Palette.danger, Palette.bg)
+                        PillButton("취소", { confirmServerDelete = false })
+                    }
+                }
+                serverTakesStatus?.let { Text(it, color = Palette.sub, fontSize = 24.sp) }
+            }
         }
         SettingSwitch("착석 값 뒤집기", "Pleos Connect Emulator 2.1.0은 착석 값이 반대로 옵니다. 실제 차에서 반대로 동작하면 끄세요", s.invertSeat, onInvert)
         if (s.passengerUnreadable) Text("이 차는 동승석 착석을 읽을 수 없어 이 기능이 열리지 않습니다", color = Palette.danger, fontSize = BODY)
@@ -551,7 +676,9 @@ fun SettingsTab(
             }
         }
         Text(
-            (if (s.rankUpload) "전국 랭킹에는 별명과 곡별 최고 점수만 보냅니다. 그 밖의 기록은 이 차 안에만 저장됩니다. "
+            (if (s.rankUpload) "전국 랭킹에는 별명, 곡별 최고 점수, 그리고 내가 「녹음 올리기」를 누른 녹음만 보냅니다. 올린 녹음은 서버(Firebase Firestore)에 " +
+                "공개로 저장되어 누구나 들을 수 있고, 「점수」 탭의 「지우기」나 위의 「서버의 내 녹음 모두 지우기」로 지웁니다. 녹음은 한 곡에 7분까지 담깁니다. " +
+                "그 밖의 기록은 이 차 안에만 저장됩니다. "
             else "기록은 이 차 안에만 저장되고 밖으로 보내지 않습니다. ") +
                 (if (s.scoring) "마이크는 노래 점수를 켰을 때, 혼자만의 노래방에서만 씁니다." else "마이크를 쓰지 않습니다."),
             color = Palette.dim, fontSize = 24.sp,

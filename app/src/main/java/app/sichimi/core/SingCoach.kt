@@ -8,6 +8,10 @@ import android.os.Looper
 import android.util.Log
 import app.sichimi.audio.Announcer
 import app.sichimi.audio.MicPitch
+import app.sichimi.audio.TakeCodec
+import app.sichimi.gate.TakeTimeline
+import app.sichimi.rank.TakeStore
+import kotlinx.coroutines.Dispatchers
 import app.sichimi.data.RecordDao
 import app.sichimi.data.SongScore
 import app.sichimi.gate.GateState
@@ -39,6 +43,9 @@ data class ScoreResult(
  * - 곡마다 [SingScore]를 하나 만들고, 마이크 음을 그 순간의 곡 위치와 맞춰 넣는다.
  * - 곡이 바뀌거나 끝나면 점수를 저장하고, 그때 혼자만의 노래방이면 한 줄을 말한다(운전 중 화면에는 점수를 띄우지 않는다).
  * - 곡 위치: 재생 서비스의 위치를 메인 스레드에서 50ms마다 읽어 두고, 마이크 스레드는 그 뒤 흐른 시간만큼 더한다.
+ * - 녹음: 「전국 랭킹에 올리기」를 켰을 때만 마이크 소리를 곡 시각에 맞춰 모은다([TakeTimeline]).
+ *   완주해서 그 곡의 최고 기록이 되면 압축해 차 안에 둔다([TakeStore]). 서버에는 사용자가 「녹음 올리기」를 눌러야 간다.
+ *   녹음이 실패해도 점수 저장과 점수 올리기는 그대로 된다.
  */
 class SingCoach(
     private val context: Context,
@@ -49,17 +56,18 @@ class SingCoach(
     private val dao: RecordDao,
     private val announcer: Announcer,
     private val ranking: RankingClient,
+    private val takes: TakeStore,
     private val positionMs: () -> Long,
 ) {
     private val main = Handler(Looper.getMainLooper())
-    private val mic = MicPitch(::onMicFrame)
+    private val mic = MicPitch(::onMicFrame, ::onMicPcm)
 
     private class Clock(val atNanos: Long, val posMs: Long, val playing: Boolean)
     @Volatile private var clock = Clock(0, 0, false)
 
     /** probes: 마이크 지연을 여러 값으로 가정한 점수(검증용 로그. 실제 점수는 [score]). */
     private class Current(val itemKey: String, val songId: String, val score: SingScore, val durationMs: Long,
-                          val probes: List<Pair<Long, SingScore>>)
+                          val probes: List<Pair<Long, SingScore>>, val take: TakeTimeline?)
     @Volatile private var current: Current? = null
     private var lastKey: String? = null // 메인 스레드
     private var lastPos = 0L // 메인 스레드
@@ -110,7 +118,9 @@ class SingCoach(
         val pr = PitchRef(ref)
         lastPos = 0L
         synchronized(lock) {
-            current = Current(itemKey, songId, SingScore(pr), song.durationMs, LAG_PROBES.map { it to SingScore(pr) })
+            val record = settings.state.value.rankUpload && ranking.configured
+            current = Current(itemKey, songId, SingScore(pr), song.durationMs, LAG_PROBES.map { it to SingScore(pr) },
+                if (record) runCatching { TakeTimeline(song.durationMs) }.getOrNull() else null)
         }
     }
 
@@ -125,6 +135,14 @@ class SingCoach(
             cur.score.feed(songMs, midi)
             for ((lag, s) in cur.probes) s.feed(songMs + MIC_LAG_MS - lag, midi)
         }
+    }
+
+    /** 마이크 스레드. 녹음을 켰을 때만 소리를 곡 시각 자리에 둔다. */
+    private fun onMicPcm(atNanos: Long, hop: ShortArray) {
+        val c = clock
+        if (!c.playing) return
+        val songMs = c.posMs + (atNanos - c.atNanos) / 1_000_000 - MIC_LAG_MS
+        synchronized(lock) { current?.take?.write(songMs, hop) }
     }
 
     private fun finish(why: String) {
@@ -142,9 +160,39 @@ class SingCoach(
                 coverage = c.score.coverage, finished = finished))
             _last.value = ScoreResult(c.songId, title, score, finished, best)
             if (karaokeNow && finished) announcer.say(line(title, score, best))
-            if (finished && (best == null || score > best)) upload(c.songId, score)
+            if (finished && (best == null || score > best)) {
+                upload(c.songId, score)
+                c.take?.let { keepTake(c.songId, score, it, takeShiftMs(c)) }
+            }
         }
     }
+
+    /** 최고 기록이 된 판의 녹음을 압축해 차 안에 둔다. 실패해도 점수에는 영향이 없다. */
+    private suspend fun keepTake(songId: String, score: Int, t: TakeTimeline, shiftMs: Long) {
+        if (t.isEmpty || t.lengthMs < MIN_TAKE_MS) return
+        _takeWorking.value = songId
+        runCatching {
+            val e = kotlinx.coroutines.withContext(Dispatchers.Default) { TakeCodec.encode(t.pcm, t.first, t.end, t.startMs - shiftMs) }
+            takes.save(songId, score, e)
+            Log.i(TAG, "녹음: 곡 ${t.startMs}ms부터 ${t.lengthMs}ms(지연 보정 ${shiftMs}ms), 건너뜀 ${t.jumps}번 -> ${e.bitrate / 1000}kbps ${e.bytes.size}바이트" + if (e.cut) " (잘림)" else "")
+        }.onFailure { Log.w(TAG, "녹음 저장 실패(점수는 그대로): $it") }
+        _takeWorking.value = null
+    }
+
+    /**
+     * 녹음을 곡 시각에 둘 때 쓴 마이크 지연([MIC_LAG_MS])이 이번 판에 얼마나 틀렸는지.
+     * 지연 가정별 점수 가운데 가장 높은 것이 기본 가정보다 [SHIFT_MIN_GAIN]점 넘게 높을 때만 그 차이를 돌려준다(아니면 0).
+     * 돌려준 만큼 녹음을 앞으로 당겨 반주와 맞춘다. 마이크와 출력 지연은 차마다 달라서다.
+     */
+    private fun takeShiftMs(c: Current): Long {
+        val base = c.probes.firstOrNull { it.first == MIC_LAG_MS }?.second?.score ?: return 0
+        val (lag, s) = c.probes.mapNotNull { (l, sc) -> sc.score?.let { l to it } }.maxByOrNull { it.second } ?: return 0
+        return if (s - base >= SHIFT_MIN_GAIN) lag - MIC_LAG_MS else 0
+    }
+
+    /** 녹음을 압축하는 중인 곡(화면에 "정리 중"). */
+    private val _takeWorking = MutableStateFlow<String?>(null)
+    val takeWorking: StateFlow<String?> = _takeWorking.asStateFlow()
 
     /** 전국 랭킹에 올린다(설정에서 켰고 서버가 설정돼 있을 때만). 실패해도 점수 기록에는 영향이 없다. */
     private suspend fun upload(songId: String, score: Int) {
@@ -170,6 +218,9 @@ class SingCoach(
         const val TAG = "SC.Score"
         /** 이만큼(음표 프레임, 20ms) 넘게 채점해야 점수를 남긴다. 250 = 5초. */
         const val MIN_JUDGED = 250
+        /** 이보다 짧은 녹음은 남기지 않는다. */
+        const val MIN_TAKE_MS = 5_000L
+        const val SHIFT_MIN_GAIN = 3
         private val LAG_PROBES = (-100L..400L step 50L).toList()
 
         /**

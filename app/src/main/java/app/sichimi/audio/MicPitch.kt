@@ -10,7 +10,8 @@ import app.sichimi.gate.Yin
 import kotlin.math.sqrt
 
 /**
- * 마이크에서 20ms마다 음높이를 찾는다. 소리는 어디에도 저장하지 않고 음높이 숫자만 넘긴다.
+ * 마이크에서 20ms마다 음높이를 찾는다. 음높이 숫자를 넘기고, [onPcm]이 있으면 그 토막의 소리도 넘긴다
+ * (전국 랭킹 녹음을 켰을 때만 SingCoach가 받는다. 끄면 소리는 어디에도 남지 않는다).
  *
  * - 16kHz 모노. 40ms 창을 20ms씩 옮기며 YIN으로 찾는다.
  * - 너무 작은 소리(약 -45dBFS 아래)는 부르지 않은 것으로 본다.
@@ -18,7 +19,10 @@ import kotlin.math.sqrt
  *   이때는 채점하지 않는다(부르지 않은 것과 구별).
  * [onFrame]은 마이크 스레드에서 불린다: (그 소리가 들어온 시각 System.nanoTime, 찾은 음 MIDI 또는 null, 들을 수 있었는가).
  */
-class MicPitch(private val onFrame: (atNanos: Long, midi: Float?, heard: Boolean) -> Unit) {
+class MicPitch(
+    private val onFrame: (atNanos: Long, midi: Float?, heard: Boolean) -> Unit,
+    private val onPcm: ((atNanos: Long, hop: ShortArray) -> Unit)? = null,
+) {
     @Volatile private var running = false
     private var thread: Thread? = null
 
@@ -87,6 +91,7 @@ class MicPitch(private val onFrame: (atNanos: Long, midi: Float?, heard: Boolean
                 val rms = sqrt(sum / HOP).toFloat()
                 val midi = if (heard && filled == WIN && rms > MIN_RMS) yin.pitchHz(win)?.let { SingScore.hzToMidi(it) } else null
                 if (midi != null) pitched++
+                if (heard) onPcm?.invoke(at, hop)
                 onFrame(at, midi, heard)
                 if (frames % 250 == 0L) {
                     Log.i(TAG, "${(System.nanoTime() - startNanos) / 1_000_000_000}초: 토막 $frames, 들림 $heardFrames, 음 찾음 $pitched")

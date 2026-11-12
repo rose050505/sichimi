@@ -15,8 +15,12 @@ import java.net.URL
 import java.net.URLEncoder
 import java.security.MessageDigest
 
-/** 전국 랭킹 한 줄. */
-data class RankEntry(val rank: Int, val nickname: String, val score: Int, val mine: Boolean)
+/** 서버에 올라간 녹음의 요약(소리는 빼고). [startMs]: 녹음의 첫 표본이 곡의 몇 ms인가. */
+data class TakeMeta(val score: Int, val startMs: Long, val lengthMs: Long)
+
+/** 전국 랭킹 한 줄. [take]: 이 사람이 올린 녹음(없으면 null). */
+data class RankEntry(val rank: Int, val nickname: String, val score: Int, val mine: Boolean,
+                     val uid: String = "", val take: TakeMeta? = null)
 
 /** 한 곡의 랭킹: 위 몇 명과 내 순위(올린 적이 없으면 null). */
 data class SongRanking(val top: List<RankEntry>, val myRank: Int?, val myScore: Int?, val total: Int)
@@ -26,8 +30,10 @@ data class SongRanking(val top: List<RankEntry>, val myRank: Int?, val myScore: 
  *
  * - 익명 로그인(Identity Toolkit `accounts:signUp`)으로 이 차의 uid를 받는다. 이름·연락처는 받지 않는다.
  * - 저장 위치: `rank/{곡 id}/scores/{uid}` = {nickname, score, at}. 한 사람이 한 곡에 한 줄(최고 점수만).
- * - 보내는 것: 사용자가 정한 별명, 곡 id, 점수, 시각. 마이크 소리나 차 신호, 주행 기록은 보내지 않는다.
- * - 보안 규칙(서버): 자기 uid 문서만 쓸 수 있고, 점수는 0~100 정수, 별명은 1~12자(docs/firestore.rules).
+ * - 보내는 것: 사용자가 정한 별명, 곡 id, 점수, 시각. 차 신호, 주행 기록은 보내지 않는다.
+ * - 녹음: 사용자가 「녹음 올리기」를 눌렀을 때만 `rank/{곡 id}/takes/{uid}` = {audio(AAC 바이트), score, startMs, lengthMs, at}.
+ *   점수 문서와 따로 두어 랭킹 목록을 읽을 때 소리까지 받지 않는다. 지우기는 본인만(규칙).
+ * - 보안 규칙(서버): 자기 uid 문서만 쓸 수 있고, 점수는 0~100 정수, 별명은 1~12자, 녹음은 900,000바이트 이하(docs/firestore.rules).
  */
 class RankingClient(private val context: Context) {
     private val project = BuildConfig.RANK_PROJECT
@@ -72,6 +78,8 @@ class RankingClient(private val context: Context) {
             .put("orderBy", JSONArray().put(JSONObject().put("field", JSONObject().put("fieldPath", "score")).put("direction", "DESCENDING")))
             .put("limit", 200))
         val arr = requestArray("POST", "$base/rank/${enc(songId)}:runQuery", token, query)
+        // 녹음 목록: 소리(audio)는 빼고 요약 필드만 받는다. 실패해도 랭킹은 보인다.
+        val takes = runCatching { takeIndex(songId, token) }.onFailure { Log.w(TAG, "녹음 목록 읽기 실패: $it") }.getOrDefault(emptyMap())
         val rows = (0 until arr.length()).mapNotNull { i ->
             val d = arr.getJSONObject(i).optJSONObject("document") ?: return@mapNotNull null
             val f = d.getJSONObject("fields")
@@ -79,11 +87,65 @@ class RankingClient(private val context: Context) {
                 f.optJSONObject("score")?.optString("integerValue")?.toIntOrNull() ?: 0)
         }
         // 같은 점수는 같은 순위
-        val ranked = rows.mapIndexed { i, (id, name, score) ->
-            RankEntry(rows.indexOfFirst { it.third == score } + 1, name, score, id == uid)
+        val ranked = rows.map { (id, name, score) ->
+            RankEntry(rows.indexOfFirst { it.third == score } + 1, name, score, id == uid, id, takes[id])
         }
         val me = ranked.firstOrNull { it.mine }
         SongRanking(ranked.take(limit), me?.rank, me?.score, rows.size)
+    }
+
+    // ---------- 녹음 ----------
+
+    private fun takeIndex(songId: String, token: String?): Map<String, TakeMeta> {
+        val fields = JSONArray().apply { listOf("score", "startMs", "lengthMs").forEach { put(JSONObject().put("fieldPath", it)) } }
+        val query = JSONObject().put("structuredQuery", JSONObject()
+            .put("select", JSONObject().put("fields", fields))
+            .put("from", JSONArray().put(JSONObject().put("collectionId", "takes")))
+            .put("limit", 200))
+        val arr = requestArray("POST", "$base/rank/${enc(songId)}:runQuery", token, query)
+        return (0 until arr.length()).mapNotNull { i ->
+            val d = arr.getJSONObject(i).optJSONObject("document") ?: return@mapNotNull null
+            val f = d.getJSONObject("fields")
+            d.getString("name").substringAfterLast('/') to TakeMeta(int(f, "score").toInt(), int(f, "startMs"), int(f, "lengthMs"))
+        }.toMap()
+    }
+
+    private fun int(f: JSONObject, k: String) = f.optJSONObject(k)?.optString("integerValue")?.toLongOrNull() ?: 0L
+
+    /**
+     * 내 녹음을 올린다. 점수 문서가 있어야 규칙이 받아 주므로 점수를 먼저 올린다(같으면 쓰지 않음).
+     * 녹음이 실패해도 점수는 이미 올라가 있다.
+     */
+    suspend fun submitTake(songId: String, nickname: String, take: LocalTake, audio: ByteArray) = io {
+        submit(songId, nickname, take.score)
+        val (uid, token) = auth()
+        val body = JSONObject().put("fields", JSONObject()
+            .put("audio", JSONObject().put("bytesValue", android.util.Base64.encodeToString(audio, android.util.Base64.NO_WRAP)))
+            .put("score", JSONObject().put("integerValue", take.score.toString()))
+            .put("startMs", JSONObject().put("integerValue", take.startMs.coerceAtLeast(0).toString()))
+            .put("lengthMs", JSONObject().put("integerValue", take.lengthMs.toString()))
+            .put("at", JSONObject().put("timestampValue", java.time.Instant.now().toString())))
+        val t0 = System.currentTimeMillis()
+        call("PATCH", "$base/rank/${enc(songId)}/takes/$uid", token, body.toString(), "application/json", LONG_TIMEOUT)
+        Log.i(TAG, "녹음 올림: $songId ${take.score}점 ${audio.size}바이트 (${System.currentTimeMillis() - t0}ms)")
+    }
+
+    /** 한 사람의 녹음을 받는다(요약, AAC 바이트). */
+    suspend fun fetchTake(songId: String, uid: String): Pair<TakeMeta, ByteArray> = io {
+        val t0 = System.currentTimeMillis()
+        val d = JSONObject(call("GET", "$base/rank/${enc(songId)}/takes/${enc(uid)}", null, null, "application/json", LONG_TIMEOUT))
+        val f = d.getJSONObject("fields")
+        val bytes = android.util.Base64.decode(f.getJSONObject("audio").getString("bytesValue"), android.util.Base64.DEFAULT)
+        Log.i(TAG, "녹음 받음: $songId ${bytes.size}바이트 (${System.currentTimeMillis() - t0}ms)")
+        TakeMeta(int(f, "score").toInt(), int(f, "startMs"), int(f, "lengthMs")) to bytes
+    }
+
+    /** 서버의 내 녹음을 지운다. 올린 적이 없으면(익명 계정이 없으면) 할 일이 없다. */
+    suspend fun deleteTake(songId: String) = io {
+        if (prefs.getString("uid", null) == null) return@io
+        val (uid, token) = auth()
+        call("DELETE", "$base/rank/${enc(songId)}/takes/$uid", token, null, "application/json")
+        Log.i(TAG, "서버의 내 녹음 지움: $songId")
     }
 
     // ---------- 익명 로그인 ----------
@@ -120,14 +182,14 @@ class RankingClient(private val context: Context) {
 
     private fun postForm(url: String, form: String) = JSONObject(call("POST", url, null, form, "application/x-www-form-urlencoded"))
 
-    private fun call(method: String, url: String, token: String?, body: String?, type: String): String {
+    private fun call(method: String, url: String, token: String?, body: String?, type: String, timeoutMs: Int = 8000): String {
         val c = URL(url).openConnection() as HttpURLConnection
         try {
             // HttpURLConnection은 PATCH를 모른다: POST + 덮어쓰기 머리말로 보낸다
             c.requestMethod = if (method == "PATCH") "POST" else method
             if (method == "PATCH") c.setRequestProperty("X-HTTP-Method-Override", "PATCH")
             c.connectTimeout = 8000
-            c.readTimeout = 8000
+            c.readTimeout = timeoutMs
             token?.let { c.setRequestProperty("Authorization", "Bearer $it") }
             // API 키를 Android 앱으로 제한해 둔 경우를 위해 패키지와 서명 지문을 함께 보낸다
             c.setRequestProperty("X-Android-Package", context.packageName)
@@ -163,5 +225,7 @@ class RankingClient(private val context: Context) {
 
     companion object {
         const val TAG = "SC.Rank"
+        /** 녹음(약 1MB)을 주고받을 때 기다리는 시간. */
+        const val LONG_TIMEOUT = 30_000
     }
 }
