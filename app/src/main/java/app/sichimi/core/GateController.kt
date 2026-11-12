@@ -51,7 +51,15 @@ data class GateUi(
     val sealed: Boolean = false,
     val gear: Gear = Gear.UNKNOWN,
     val cautious: Boolean = false,
+    /** 들킬 뻔할 때마다 1씩 오른다(시치미가 숨는 신호). */
+    val exposureSeq: Long = 0,
+    val wiperOn: Boolean = false,
+    /** 창문별 열린 정도(%). 읽지 못한 창문은 뺀다. */
+    val windowsPct: List<Int> = emptyList(),
 )
+
+/** 들킬 뻔한 순간 하나(대피 시간을 잰 것). 대피 랭킹과 리플레이 카드가 쓴다. */
+data class EscapeMoment(val songId: String, val reactionMs: Long, val cause: String, val at: Long)
 
 /**
  * 차 신호, 설정, 플레이어 상태를 [PrivacyGate]에 넣고, 문지기가 요청한 일(가수 음량, 기록)을 한다.
@@ -65,6 +73,12 @@ class GateController(
     private val mixer: StemMixProcessor,
     private val dao: RecordDao,
     private val positionMs: () -> Long,
+    /** 곡 길이(완창 판정). */
+    private val durationOf: (String) -> Long = { 0L },
+    /** 그 곡 그 위치에서 부르던 가사 한 줄. */
+    private val lyricAt: (String, Long) -> String? = { _, _ -> null },
+    /** 대피 시간을 잰 들킬 뻔이 기록될 때(대피 랭킹). */
+    private val onEscape: (EscapeMoment) -> Unit = {},
 ) {
     private val gate = PrivacyGate(settings.state.value.toGateConfig())
     private val ledger = SoloLedger()
@@ -89,13 +103,18 @@ class GateController(
     private var lastGear = Gear.UNKNOWN
     private var lastSignalAt = 0L
     private var lastConfig = settings.state.value.toGateConfig()
+    private var exposureSeq = 0L
+    private var reliefPending = false
+    private var lastExposureRow: Long? = null // ops 안에서만
+    private var lastEnv: Pair<Boolean, Boolean>? = null
+    private var lastWiper = false
 
     private val tick = Runnable { apply(gate.tick(now())) }
 
     fun start() {
         scope.launch { for (op in ops) runCatching { op() }.onFailure { Log.e(TAG, "기록 실패", it) } }
         // 재생 중인 곡도 내 기록에 보이도록 몇 초마다 진행 중 기록을 남긴다.
-        scope.launch { while (true) { delay(3_000); ledger.currentPlay(wall())?.let(::savePlay) } }
+        scope.launch { while (true) { delay(3_000); envTick(lastWiper); ledger.currentPlay(wall())?.let(::savePlay) } }
         scope.launch {
             combine(signals.readings, settings.state, player) { r, s, p -> Triple(r, s, p) }
                 .collect { (r, s, p) -> onInputs(r, s, p) }
@@ -109,7 +128,8 @@ class GateController(
 
     fun clearRecords() {
         ops.trySend {
-            dao.clearExposures(); dao.clearPlays(); dao.clearTrips(); dao.clearScores()
+            dao.clearExposures(); dao.clearPlays(); dao.clearTrips(); dao.clearScores(); dao.clearAwards(); dao.clearGhosts()
+            lastExposureRow = null
             currentTripId = null
             tripIdByStart.clear()
             playRowByKey.clear()
@@ -117,8 +137,20 @@ class GateController(
         dismissSummary()
     }
 
+    /** 와이퍼·밤이 바뀌면 기록 장부에 알린다(비 오는 날·밤 미션). */
+    private fun envTick(wiper: Boolean) {
+        lastWiper = wiper
+        val env = wiper to app.sichimi.gate.Week.isNight(wall(), java.time.ZoneId.systemDefault())
+        if (env != lastEnv) {
+            lastEnv = env
+            ledger.onEnv(env.first, env.second, wall())
+            Log.i(TAG, "차 환경 와이퍼=${env.first} 밤=${env.second}")
+        }
+    }
+
     private fun onInputs(r: CabinReadings, s: AppSettings, p: PlayerSnapshot) {
         val t = now()
+        envTick(r.wiperOn)
         val input = r.toCabinInput(s, p.isPlaying)
         // 설정이 바뀌었으면 먼저 반영한다.
         val config = s.toGateConfig()
@@ -143,12 +175,22 @@ class GateController(
             is GateEffect.StateChanged -> {
                 Log.i(TAG, "상태 ${e.from} -> ${e.to}")
                 ledger.onGateState(e.to, wall())
+                if (e.to == GateState.KARAOKE && reliefPending) {
+                    // 들킬 뻔한 뒤 다시 혼자·밀폐가 되어 노래방이 열렸다: 잘 숨고 돌아옴
+                    reliefPending = false
+                    val at = wall()
+                    ops.trySend { lastExposureRow?.let { dao.markRelieved(it, at); Log.i(TAG, "휴, 안 들켰다: 들킬 뻔 $it 뒤 다시 노래방") } }
+                }
             }
             is GateEffect.VocalRamp -> {
                 lastRampSeq = mixer.setVocalGain(e.targetGain, e.durationMs)
                 Log.i(TAG, "가수 음량 -> ${e.targetGain} (${e.durationMs}ms) seq=$lastRampSeq")
             }
-            is GateEffect.Exposure -> recordExposure(e, lastRampSeq)
+            is GateEffect.Exposure -> {
+                exposureSeq++
+                reliefPending = true
+                recordExposure(e, lastRampSeq)
+            }
         }
         mixer.setCountInAudible(CountIn.audible(gate.state, settings.state.value.countIn))
         val cabin = gate.input
@@ -159,6 +201,9 @@ class GateController(
             sealed = cabin.isSealed(gate.config.windowThresholdPct),
             gear = cabin.gear,
             cautious = gate.cautious,
+            exposureSeq = exposureSeq,
+            wiperOn = lastWiper,
+            windowsPct = cabin.windows.values.mapNotNull { (it as? Reading.Known)?.value },
         )
         handler.removeCallbacks(tick)
         gate.nextDeadlineMs()?.let { handler.postDelayed(tick, (it - now()).coerceAtLeast(0)) }
@@ -178,11 +223,14 @@ class GateController(
                     reaction = (mixer.lastAppliedAtMs - e.signalAtMs).coerceAtLeast(0) + AudioConfig.OUTPUT_LATENCY_MS
                 }
             }
-            Log.i(TAG, "들킬 뻔 cause=${e.cause} reactionMs=$reaction song=$songId pos=$pos")
+            val lyric = songId?.let { runCatching { lyricAt(it, pos) }.getOrNull() }
+            Log.i(TAG, "들킬 뻔 cause=${e.cause} reactionMs=$reaction song=$songId pos=$pos 가사=$lyric")
             ledger.onExposure(reaction, wall())
             ops.trySend {
-                dao.insertExposure(ExposureEvent(tripId = currentTripId, at = at, cause = e.cause.name, songId = songId, positionMs = pos, reactionMs = reaction))
+                lastExposureRow = dao.insertExposure(ExposureEvent(tripId = currentTripId, at = at, cause = e.cause.name, songId = songId,
+                    positionMs = pos, reactionMs = reaction, lyric = lyric))
             }
+            if (reaction != null && songId != null) onEscape(EscapeMoment(songId, reaction, e.cause.name, at))
         }
     }
 
@@ -219,10 +267,11 @@ class GateController(
         if (p.totalMs <= 0) return
         ops.trySend {
             val row = playRowByKey[p.itemKey]
-            if (row != null) dao.updatePlay(row, p.totalMs, p.soloMs)
+            if (row != null) dao.updatePlayEnv(row, p.totalMs, p.soloMs, p.rainSoloMs, p.nightSoloMs)
             else {
                 val tripId = p.tripStartedAt?.let { tripIdByStart[it] }
-                playRowByKey[p.itemKey] = dao.insertPlay(SongPlay(tripId = tripId, songId = p.songId, startedAt = p.startedAt, totalMs = p.totalMs, soloMs = p.soloMs))
+                playRowByKey[p.itemKey] = dao.insertPlay(SongPlay(tripId = tripId, songId = p.songId, startedAt = p.startedAt, totalMs = p.totalMs, soloMs = p.soloMs,
+                    durationMs = durationOf(p.songId), rainSoloMs = p.rainSoloMs, nightSoloMs = p.nightSoloMs))
             }
         }
     }

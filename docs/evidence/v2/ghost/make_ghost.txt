@@ -1,0 +1,3 @@
+점수 문서: 200
+녹음 문서: 200 765882바이트, startMs=7600(실제보다 600ms 늦게)
+지울 시험 문서(콘솔): rank/01-arirang/scores/oTb8vQeuulTdh4XPYjkv7ENy9zw1, rank/01-arirang/takes/oTb8vQeuulTdh4XPYjkv7ENy9zw1

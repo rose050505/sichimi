@@ -7,6 +7,9 @@ rules_version = '2';
 // - 녹음(takes): 점수 문서와 따로 둔다(랭킹 목록을 읽을 때 소리까지 받지 않게).
 //   누구나 들을 수 있다. 쓰기와 지우기는 본인 uid 문서만. 쓰기는 앱에 든 세 곡만, 그 곡의 내 점수 문서가 있을 때만.
 //   필드는 audio·score·startMs·lengthMs·at 다섯 개만(모두 있어야 함), 녹음은 900,000바이트 이하.
+// - 가장 빠른 대피(escape, v2): escape/{주}/songs/{곡}/runs/{uid} = {nickname, ms, cause, at}. 누구나 읽기.
+//   쓰기는 본인 uid만, 주 이름(2026-W46 꼴)·세 곡·필드 네 개만, ms는 100~3000 정수, cause는 DOOR·SEAT·WINDOW,
+//   별명 1~12자, at은 서버 시각 ±10분 안. 고칠 때는 기록이 같거나 빨라질 때만. 지우기는 본인만.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /rank/{songId}/scores/{uid} {
@@ -21,6 +24,27 @@ service cloud.firestore {
         && request.resource.data.nickname.size() >= 1 && request.resource.data.nickname.size() <= 12
         && request.resource.data.at is timestamp;
       allow delete: if false;
+    }
+    function escapeValid(week, songId, uid) {
+      let d = request.resource.data;
+      return request.auth != null
+        && request.auth.uid == uid
+        && week.matches('^20[0-9]{2}-W[0-5][0-9]$')
+        && songId in ['01-arirang', '02-destroy', '03-wade']
+        && d.keys().hasOnly(['nickname', 'ms', 'cause', 'at'])
+        && d.keys().hasAll(['nickname', 'ms', 'cause', 'at'])
+        && d.ms is int && d.ms >= 100 && d.ms <= 3000
+        && d.cause in ['DOOR', 'SEAT', 'WINDOW']
+        && d.nickname is string && d.nickname.size() >= 1 && d.nickname.size() <= 12
+        && d.at is timestamp
+        && d.at > request.time - duration.value(10, 'm')
+        && d.at < request.time + duration.value(10, 'm');
+    }
+    match /escape/{week}/songs/{songId}/runs/{uid} {
+      allow read: if true;
+      allow create: if escapeValid(week, songId, uid);
+      allow update: if escapeValid(week, songId, uid) && request.resource.data.ms <= resource.data.ms;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
     match /rank/{songId}/takes/{uid} {
       allow read: if true;

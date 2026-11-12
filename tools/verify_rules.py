@@ -124,6 +124,37 @@ def main():
     gone = http("GET", T(SONG, b_uid))
     check("B 녹음이 지워졌는지(읽으면 404)", 404, gone)
 
+    print("\n— 가장 빠른 대피(escape, v2) —")
+    import datetime
+    wk = datetime.date.today().isocalendar()
+    WEEK = f"{wk[0]}-W{wk[1]:02d}"
+    E = lambda week, song, uid: f"{BASE}/escape/{week}/songs/{song}/runs/{uid}"
+
+    def esc(ms=420, cause="DOOR", nick="test-delete", at=None, extra=None):
+        f = {"nickname": {"stringValue": nick}, "ms": {"integerValue": str(ms)}, "cause": {"stringValue": cause},
+             "at": {"timestampValue": at or now_ts()}}
+        f.update(extra or {})
+        return {"fields": f}
+    old = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 3600))
+    check("E1. 정상 기록(B, 420ms)", 200, http("PATCH", E(WEEK, SONG, b_uid), b, esc()))
+    check("E2. 남의 uid 자리에(A가 B 자리에)", 403, http("PATCH", E(WEEK, SONG, b_uid), a, esc(ms=300)))
+    check("E3. 기록을 늘려 덮어쓰기(420 -> 900)", 403, http("PATCH", E(WEEK, SONG, b_uid), b, esc(ms=900)))
+    check("E4. 더 빠른 기록으로 고치기(420 -> 350)", 200, http("PATCH", E(WEEK, SONG, b_uid), b, esc(ms=350)))
+    check("E5. ms 99(너무 빠름, 조작)", 403, http("PATCH", E(WEEK, SONG, a_uid), a, esc(ms=99)))
+    check("E6. ms 3001", 403, http("PATCH", E(WEEK, SONG, a_uid), a, esc(ms=3001)))
+    check("E7. 원인 값이 틀림(GEAR)", 403, http("PATCH", E(WEEK, SONG, a_uid), a, esc(cause="GEAR")))
+    check("E8. 주 이름 꼴이 틀림(2026-46)", 403, http("PATCH", E("2026-46", SONG, a_uid), a, esc()))
+    check("E9. 앱에 없는 곡", 403, http("PATCH", E(WEEK, "99-none", a_uid), a, esc()))
+    check("E10. 정해지지 않은 필드(score)", 403, http("PATCH", E(WEEK, SONG, a_uid), a, esc(extra={"score": {"integerValue": "100"}})))
+    check("E11. 시각이 1시간 전", 403, http("PATCH", E(WEEK, SONG, a_uid), a, esc(at=old)))
+    check("E12. 별명 13자", 403, http("PATCH", E(WEEK, SONG, a_uid), a, esc(nick="1234567890123")))
+    check("E13. 로그인 없이", 403, http("PATCH", E(WEEK, SONG, a_uid), None, esc()))
+    check("E14. 읽기(공개, 빠른 순)", 200, http("POST", f"{BASE}/escape/{WEEK}/songs/{SONG}:runQuery", None,
+                                         {"structuredQuery": {"from": [{"collectionId": "runs"}],
+                                                              "orderBy": [{"field": {"fieldPath": "ms"}, "direction": "ASCENDING"}], "limit": 5}}))
+    check("E15. 남의 대피 기록 지우기(A가 B 것을)", 403, http("DELETE", E(WEEK, SONG, b_uid), a))
+    check("E16. 내 대피 기록 지우기(B)", 200, http("DELETE", E(WEEK, SONG, b_uid), b))
+
     n_ok = sum(r[3] for r in results)
     print(f"\n결과: {n_ok}/{len(results)} 통과")
     if MODE == "server":

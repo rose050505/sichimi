@@ -42,6 +42,15 @@ object Palette {
     val onKaraoke = Color(0xFF1F1500)
     val karaokeTint = Color(0xFF3A2E1A)
 
+    /** 무대(v2): 노래방 조명 느낌의 두 번째 강조색(자홍). 혼자·노래방일 때만 보이는 곳에서만. */
+    val spot = Color(0xFFFF5FA8)
+    /** 무대 바탕(정지된 어두운 자홍빛). 혼자 노래방일 때 주행 화면과 재생 탭 무대에서만. */
+    val stageBg = Color(0xFF1E1420)
+    val stageSurface = Color(0xFF2A1C2E)
+    /** 시치미 몸 색. */
+    val mascot = Color(0xFFFFE6C4)
+    val mascotInk = Color(0xFF3B2A2A)
+
     val danger = Color(0xFFFF7A6B)
     val dangerTint = Color(0xFF3A2422)
 }

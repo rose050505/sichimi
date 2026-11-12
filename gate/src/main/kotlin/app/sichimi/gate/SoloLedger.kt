@@ -21,6 +21,10 @@ data class SongPlaySummary(
     val tripStartedAt: Long?,
     /** 곡을 시작할 때마다 바뀌는 값. 같은 재생의 진행 중 기록과 마감 기록을 잇는다. */
     val itemKey: String = "",
+    /** 와이퍼가 켜진 동안 혼자 부른 시간(비 오는 날 미션·배지). */
+    val rainSoloMs: Long = 0,
+    /** 밤(19~6시)에 혼자 부른 시간. */
+    val nightSoloMs: Long = 0,
 )
 
 sealed interface LedgerEvent {
@@ -51,6 +55,8 @@ class SoloLedger {
     private class PlayAcc(val index: Int, val key: String, val songId: String, val startedAt: Long, val tripStartedAt: Long?) {
         var totalMs = 0L
         var soloMs = 0L
+        var rainSoloMs = 0L
+        var nightSoloMs = 0L
     }
 
     private var trip: TripAcc? = null
@@ -60,6 +66,8 @@ class SoloLedger {
     private var gateState = GateState.NORMAL
     private var gear = Gear.UNKNOWN
     private var lastAt: Long? = null
+    private var wiperOn = false
+    private var night = false
 
     val inTrip: Boolean get() = trip != null
 
@@ -115,6 +123,13 @@ class SoloLedger {
         return events
     }
 
+    /** 와이퍼와 밤 여부가 바뀌었다(혼자 부른 시간을 비·밤으로도 나눠 센다). */
+    fun onEnv(wiper: Boolean, isNight: Boolean, nowMs: Long) {
+        accrue(nowMs)
+        wiperOn = wiper
+        night = isNight
+    }
+
     /** 들킬 뻔했다. [reactionMs]는 잰 대피 시간(없으면 null). */
     fun onExposure(reactionMs: Long?, nowMs: Long) {
         accrue(nowMs)
@@ -129,7 +144,7 @@ class SoloLedger {
     fun currentPlay(nowMs: Long): SongPlaySummary? {
         accrue(nowMs)
         val p = play ?: return null
-        return SongPlaySummary(p.songId, p.startedAt, p.totalMs, p.soloMs, p.tripStartedAt, p.key)
+        return p.summary()
     }
 
     /** 앱이 끝날 때 진행 중인 곡을 마감한다. */
@@ -142,8 +157,10 @@ class SoloLedger {
         val p = play ?: return null
         play = null
         if (p.totalMs <= 0) return null
-        return LedgerEvent.SongPlayEnded(SongPlaySummary(p.songId, p.startedAt, p.totalMs, p.soloMs, p.tripStartedAt, p.key))
+        return LedgerEvent.SongPlayEnded(p.summary())
     }
+
+    private fun PlayAcc.summary() = SongPlaySummary(songId, startedAt, totalMs, soloMs, tripStartedAt, key, rainSoloMs, nightSoloMs)
 
     private fun accrue(nowMs: Long) {
         val last = lastAt
@@ -155,6 +172,8 @@ class SoloLedger {
         p.totalMs += dt
         if (gateState == GateState.KARAOKE) {
             p.soloMs += dt
+            if (wiperOn) p.rainSoloMs += dt
+            if (night) p.nightSoloMs += dt
             trip?.let { t ->
                 t.soloMs += dt
                 t.soloByPlay[p.index] = (t.soloByPlay[p.index] ?: 0L) + dt

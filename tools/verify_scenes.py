@@ -68,9 +68,30 @@ def tap_text(text):
     return True
 
 
+# v2: 주차·혼자일 때 뜨는 덮개 카드(점수 화면, 배지·미션·투어)의 머리글
+CARD_HEADS = ("오늘의 무대", "새 칭호를 얻었어요", "이번 주 미션 완료", "주간 투어 완주!")
+
+
+def dismiss_cards(n=10):
+    """덮개 카드가 떠 있으면 「확인」으로 모두 닫는다(카드가 아래 화면의 누르기·밀기를 막으므로)."""
+    for _ in range(n):
+        texts = screen_texts()
+        if not any(t.startswith(CARD_HEADS) for t in texts):
+            return
+        tap_text("확인")
+        time.sleep(1.2)
+
+
 def screen_texts():
-    sh("adb", "shell", "uiautomator", "dump", "--user", "10", "/sdcard/ui.xml", check=False)
-    xml = sh("adb", "shell", "cat", "/sdcard/ui.xml")
+    # 지난 덤프 파일을 지우고 읽는다(덤프가 잠깐 실패하면 옛 화면 글자를 읽게 되므로). 실패하면 다시 한다.
+    xml = ""
+    for _ in range(4):
+        sh("adb", "shell", "rm", "-f", "/sdcard/ui.xml", check=False)
+        sh("adb", "shell", "uiautomator", "dump", "--user", "10", "/sdcard/ui.xml", check=False)
+        xml = sh("adb", "shell", "cat", "/sdcard/ui.xml", check=False)
+        if "<hierarchy" in xml:
+            break
+        time.sleep(1)
     return [t for t, p in re.findall(r'text="([^"]+)"[^>]*package="([^"]+)"', xml) if p == PKG]
 
 
@@ -150,11 +171,25 @@ def main():
     c("gear", "P")
     time.sleep(3)
     shot("s8a_parked_summary")
+    # v2: 주차하면 새로 얻은 배지·점수 화면 같은 덮개 카드가 먼저 뜬다(카드가 아래 화면을 가린다). 닫은 뒤 오늘 요약을 본다.
+    cards = sum(1 for x in screen_texts() if x.startswith(CARD_HEADS))
+    if cards:
+        dismiss_cards()
+        shot("s8a2_after_cards")
     texts = screen_texts()
     summary = next((x for x in texts if x.startswith("오늘 ")), "")
+    if cards:
+        summary = f"(덮개 카드를 닫은 뒤) {summary}"
     row("8a", "기어 P", "오늘 요약, 가사, 4개 탭", bool(summary) and "내 기록" in texts and "설정" in texts, summary)
+    dismiss_cards()
     tap_text("내 기록")
     time.sleep(1.5)
+    # v2: 내 기록 탭 맨 위에 시치미·투어·미션·배지가 있어 1차 칸(이번 달)은 아래에 있다. 천천히 내려 찾는다.
+    for _ in range(4):
+        texts = screen_texts()
+        if any(x.startswith("혼자 부른 곡") for x in texts):
+            break
+        sh("adb", "shell", "input", "swipe", "1700", "1100", "1700", "600", "900"); time.sleep(1)
     shot("s8b_records")
     texts = screen_texts()
     row("8b", "내 기록 탭", "이번 달 혼자 부른 곡·시간, 들킬 뻔 횟수", any(x.startswith("혼자 부른 곡") for x in texts),

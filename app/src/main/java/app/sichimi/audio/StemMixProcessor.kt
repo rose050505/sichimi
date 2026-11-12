@@ -53,6 +53,33 @@ class StemMixProcessor : BaseAudioProcessor() {
 
     private var seqCounter = 0L
 
+    // ---------- 고스트 목소리(v2) ----------
+    /** 고스트: 다른 사람이 올린 목소리(16kHz 모노)와 그 첫 표본의 곡 시각. 한 객체로 바꿔 끼운다. */
+    private class Ghost(val pcm: ShortArray, val startMs: Long, val level: Float, val guideGain: Float)
+    @Volatile private var ghost: Ghost? = null
+    /** 메인 스레드가 정한 곡 위치(이동·곡 바뀜 뒤 다시 맞춤). */
+    private class Anchor(val posMs: Long, val seq: Long)
+    @Volatile private var anchor = Anchor(0, 0)
+    private var anchorSeq = 0L // 오디오 스레드
+    private var framePos = -1L // 오디오 스레드: 지금 처리하는 곡 위치(출력 표본). -1 = 모름(고스트 소리 안 냄)
+    @Volatile var processedPosMs: Long = -1L
+        private set
+    /** 지금 고스트에 곱하는 음량(로그·시험용). */
+    @Volatile var currentGhostGain: Float = 0f
+        private set
+
+    /**
+     * 고스트 목소리를 건다. 실제 음량 = [level] × (1 − 지금 가수 음량)/(1 − [guideGain]).
+     * 가수가 100%로 돌아오는 램프와 같은 표본에서 고스트도 0이 된다(동승자가 타면 즉시 사라짐).
+     */
+    fun setGhost(pcm: ShortArray, startMs: Long, level: Float, guideGain: Float) { ghost = Ghost(pcm, startMs, level, guideGain) }
+    fun clearGhost() { ghost = null }
+    val hasGhost: Boolean get() = ghost != null
+
+    /** 곡 위치를 다시 맞춘다(메인 스레드가 재생 위치를 보고 부른다). */
+    @Synchronized
+    fun reanchor(posMs: Long) { anchor = Anchor(posMs, anchor.seq + 1) }
+
     @Volatile private var clickWanted = false
     private var clickGain = 0f // 오디오 스레드 전용
     private val frame5 = IntArray(5) // 오디오 스레드 전용
@@ -88,6 +115,12 @@ class StemMixProcessor : BaseAudioProcessor() {
         val frames = inputBuffer.remaining() / frameBytes
         if (frames == 0) return
         pickUpRequest()
+        val a = anchor
+        if (a.seq != anchorSeq) { anchorSeq = a.seq; framePos = a.posMs * sampleRate / 1000 }
+        val g = ghost
+        val gsr = 16_000.0
+        val gStart = if (g != null) g.startMs * gsr / 1000 else 0.0
+        var ghostGain = 0f
         val clickTarget = if (clickWanted) 1f else 0f
         val clickStep = 1000f / (CLICK_RAMP_MS * sampleRate)
         val out = replaceOutputBuffer(frames * 4).order(ByteOrder.nativeOrder())
@@ -119,10 +152,27 @@ class StemMixProcessor : BaseAudioProcessor() {
                 clickGain = if (clickGain < clickTarget) minOf(clickTarget, clickGain + clickStep) else maxOf(clickTarget, clickGain - clickStep)
             }
             val c = click * clickGain
-            out.putShort(clip(accL + vocL * gain + c))
-            out.putShort(clip(accR + vocR * gain + c))
+            var gv = 0f
+            if (g != null && framePos >= 0) {
+                ghostGain = app.sichimi.gate.GhostGain.follow(gain, g.guideGain, g.level)
+                if (ghostGain > 0f) {
+                    val t = framePos * gsr / sampleRate - gStart
+                    if (t >= 0) {
+                        val k = t.toInt()
+                        if (k + 1 < g.pcm.size) {
+                            val f = (t - k).toFloat()
+                            gv = (g.pcm[k] * (1 - f) + g.pcm[k + 1] * f) * ghostGain
+                        }
+                    }
+                }
+            }
+            if (framePos >= 0) framePos++
+            out.putShort(clip(accL + vocL * gain + c + gv))
+            out.putShort(clip(accR + vocR * gain + c + gv))
         }
         currentGain = gain
+        currentGhostGain = ghostGain
+        processedPosMs = if (framePos >= 0) framePos * 1000 / sampleRate else -1
         out.flip()
     }
 
@@ -139,6 +189,9 @@ class StemMixProcessor : BaseAudioProcessor() {
     }
 
     override fun onFlush() {
+        // 이동했으니 곡 위치를 모른다: 메인 스레드가 다시 맞출 때까지 고스트는 쉰다
+        framePos = -1L
+        processedPosMs = -1L
         // 위치를 옮겨도 음량은 이어진다. 남은 이동은 바로 끝낸다.
         val r = request
         gain = r.target

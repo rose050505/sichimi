@@ -9,6 +9,8 @@ import ai.pleos.playground.vehicle.constant.area.DoorValue
 import ai.pleos.playground.vehicle.constant.area.SeatValue
 import ai.pleos.playground.vehicle.constant.area.TurnSignalValue
 import ai.pleos.playground.vehicle.constant.area.WindowValue
+import ai.pleos.playground.vehicle.constant.control.WiperState
+import ai.pleos.playground.vehicle.listener.WiperStateListener
 import ai.pleos.playground.vehicle.listener.DoorPositionListener
 import ai.pleos.playground.vehicle.listener.SeatOccupancyListener
 import ai.pleos.playground.vehicle.listener.TurnSignalStateListener
@@ -38,6 +40,8 @@ data class CabinReadings(
     /** AAOS CarPropertyManager GEAR_SELECTION에서 읽은 기어(설계 7절, 검증기록 G1). */
     val gearAaos: Gear = Gear.UNKNOWN,
     val turnSignalOn: Boolean = false,
+    /** 앞 와이퍼가 움직이는 중(Vehicle SDK Wiper, 시치미 우비·비 오는 날 미션). 문지기는 보지 않는다. */
+    val wiperOn: Boolean = false,
     /** 마지막으로 값이 바뀐 시각(elapsedRealtime). 대피 시간을 잴 때 쓴다. */
     val changedAtMs: Long = 0L,
     /** Vehicle SDK 연결 상태를 사람이 읽을 수 있게. */
@@ -122,6 +126,26 @@ class VehicleSignals(private val context: Context) {
         subscribeDoors(v)
         subscribeWindows(v)
         subscribeTurnSignal(v)
+        subscribeWiper(v)
+    }
+
+    /** 앞 와이퍼 상태. 문지기 판단에는 쓰지 않으므로 changedAtMs(대피 시간 기준)를 건드리지 않는다. */
+    private fun subscribeWiper(v: Vehicle) {
+        runCatching {
+            val w = v.getWiper()
+            val area = WindowArea(WindowValue.FRONT_WINDSHIELD)
+            val apply: (WiperState?, String) -> Unit = { st, how ->
+                log("와이퍼 $how state=$st")
+                _readings.update { it.copy(wiperOn = st == WiperState.ON) }
+            }
+            w.getCurrentWiperState(area, { apply(it, "get") }, { e -> fail("와이퍼 get", e) })
+            val listener = object : WiperStateListener {
+                override fun onWiperStateUpdated(state: WiperState?) = apply(state, "callback")
+                override fun onFailed(e: Exception) = fail("와이퍼 callback", e)
+            }
+            w.registerWiperState(area, listener)
+            unregisters += { w.unregisterWiperState(area, listener) }
+        }.onFailure { log("와이퍼 구독 실패: $it") }
     }
 
     private fun subscribeSeats(v: Vehicle) {

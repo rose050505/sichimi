@@ -26,6 +26,8 @@ data class AppSettings(
     val rankUpload: Boolean = false,
     /** 랭킹에 보일 별명(1~12자). */
     val nickname: String = "",
+    /** 고스트 목소리 크기(%) 5·10·15. 가이드 음량보다 작게만 적용(GhostGain.level). */
+    val ghostPercent: Int = 10,
 ) {
     fun toGateConfig() = GateConfig(
         enabled = enabled,
@@ -53,6 +55,7 @@ class SettingsStore(context: Context) {
         scoring = prefs.getBoolean("scoring", false),
         rankUpload = prefs.getBoolean("rankUpload", false),
         nickname = prefs.getString("nickname", null) ?: "운전자${(1000..9999).random()}".also { prefs.edit().putString("nickname", it).apply() },
+        ghostPercent = prefs.getInt("ghostPercent", 10),
     )
 
     fun update(change: (AppSettings) -> AppSettings) {
@@ -68,6 +71,7 @@ class SettingsStore(context: Context) {
             .putBoolean("scoring", next.scoring)
             .putBoolean("rankUpload", next.rankUpload)
             .putString("nickname", next.nickname)
+            .putInt("ghostPercent", next.ghostPercent)
             .apply()
         _state.value = next
     }

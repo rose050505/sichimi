@@ -75,8 +75,9 @@ private fun clock(ms: Long): String {
 @Composable
 fun DrivingScreen(state: GateState, player: PlayerUi, onPrev: () -> Unit, onPlayPause: () -> Unit, onNext: () -> Unit) {
     val karaoke = state == GateState.KARAOKE
+    // 혼자 노래방일 때만 바탕이 정지된 무대색(움직임·가사·점수·캐릭터 없음). 그 밖에는 1차와 같다.
     Column(
-        Modifier.fillMaxSize().background(Palette.bg).padding(horizontal = 64.dp, vertical = Dimen.xl),
+        Modifier.fillMaxSize().background(if (karaoke) Palette.stageBg else Palette.bg).padding(horizontal = 64.dp, vertical = Dimen.xl),
         verticalArrangement = Arrangement.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -126,10 +127,19 @@ fun ParkedScreen(
     recordsContent: @Composable () -> Unit,
     scoresContent: @Composable () -> Unit,
     settingsContent: @Composable () -> Unit,
+    /** v2: 주차·혼자·노래방일 때 재생 탭 대신 그리는 무대(null이면 1차 재생 탭). */
+    stageContent: (@Composable () -> Unit)? = null,
+    /** v2: 오늘 요약 아래 들킬 뻔 리플레이 카드(혼자일 때만). */
+    summaryExtra: (@Composable () -> Unit)? = null,
+    /** v2: 주차·혼자일 때 덮개 카드(점수 화면, 배지). */
+    overlay: (@Composable () -> Unit)? = null,
+    /** v2: 들킬 뻔 직후 0.3초, 일반 재생 탭 위에 아래로 숨는 시치미(혼자일 때만). */
+    playerOverlay: (@Composable () -> Unit)? = null,
 ) {
     // 혼자가 아니면 내 기록, 점수, 설정 탭 자체를 숨긴다.
     val tabs = if (solo) ParkedTab.entries else listOf(ParkedTab.PLAYER, ParkedTab.QUEUE)
     val current = if (tab in tabs) tab else ParkedTab.PLAYER
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().background(Palette.bg).padding(Dimen.l)) {
         SegmentedTabs(tabs, current, { it.label }, { it.icon() }, onTab)
         Spacer(Modifier.height(Dimen.m))
@@ -144,17 +154,23 @@ fun ParkedScreen(
                 Spacer(Modifier.width(Dimen.m))
                 AppButton("확인", onDismissSummary, style = ButtonStyle.TONAL)
             }
+            if (summaryExtra != null) { Spacer(Modifier.height(Dimen.s)); summaryExtra() }
             Spacer(Modifier.height(Dimen.m))
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (current) {
-                ParkedTab.PLAYER -> PlayerTab(state, player, lyrics, credit, positionMs, onPrev, onPlayPause, onNext)
+                ParkedTab.PLAYER -> if (stageContent != null && solo) stageContent() else {
+                    PlayerTab(state, player, lyrics, credit, positionMs, onPrev, onPlayPause, onNext)
+                    if (playerOverlay != null && solo) playerOverlay()
+                }
                 ParkedTab.QUEUE -> queueContent()
                 ParkedTab.RECORDS -> recordsContent()
                 ParkedTab.SCORES -> scoresContent()
                 ParkedTab.SETTINGS -> settingsContent()
             }
         }
+    }
+    if (overlay != null && solo) overlay()
     }
 }
 
@@ -330,7 +346,18 @@ private fun StatTile(icon: ImageVector, label: String, value: String, modifier: 
 }
 
 @Composable
-fun RecordsTab(r: MonthRecords) {
+fun RecordsTab(r: MonthRecords, top: (@Composable () -> Unit)? = null) {
+    if (top != null) {
+        // v2: 위에 시치미·투어·미션·배지, 아래에 1차 내 기록(높이를 정해 둠). 세로로 민다.
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Dimen.l)) {
+            top()
+            Box(Modifier.fillMaxWidth().height(640.dp)) { MonthRecordsRow(r) }
+        }
+    } else MonthRecordsRow(r)
+}
+
+@Composable
+private fun MonthRecordsRow(r: MonthRecords) {
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Dimen.l)) {
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(Dimen.m)) {
             Text("이번 달", style = Type.bodyM.copy(fontWeight = FontWeight.SemiBold), color = Palette.sub, modifier = Modifier.padding(start = 8.dp))
@@ -396,8 +423,13 @@ fun ScoresTab(
     play: TakePlayUi = TakePlayUi(),
     takeActions: TakeActions? = null,
     takeWorking: String? = null,
+    /** v2: 맨 위 고스트 대결 띠. */
+    ghostBanner: (@Composable () -> Unit)? = null,
+    /** v2: 전국 랭킹의 「가장 빠른 대피(이번 주)」 칸. 곡 id를 받는다. */
+    escapeContent: (@Composable (String) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Dimen.l)) {
+        ghostBanner?.invoke()
         if (!scoring) Notice(AppIcons.Info, "설정에서 「노래 점수」를 켜면 혼자만의 노래방에서 부른 노래에 점수를 매깁니다.")
         if (last != null) {
             Row(Modifier.fillMaxWidth().card(Palette.surfaceHi).padding(Dimen.l), verticalAlignment = Alignment.CenterVertically) {
@@ -426,7 +458,7 @@ fun ScoresTab(
             }
         }
         if ((recording || myTakes.isNotEmpty()) && takeActions != null) MyTakesSection(myTakes, play, takeActions, recording, takeWorking)
-        RankSection(rankSongs, rankSong, onRankSong, rank, uploading, play, takeActions)
+        RankSection(rankSongs, rankSong, onRankSong, rank, uploading, play, takeActions, escapeContent)
     }
 }
 
@@ -454,6 +486,8 @@ class TakeActions(
     val stop: () -> Unit,
     val upload: (songId: String) -> Unit,
     val delete: (songId: String) -> Unit,
+    /** v2: 랭킹 줄의 「고스트로 겨루기」. */
+    val pickGhost: ((songId: String, entry: RankEntry) -> Unit)? = null,
 )
 
 fun lengthText(ms: Long): String {
@@ -527,7 +561,9 @@ private fun ListenButton(key: String, play: TakePlayUi, idleLabel: String, onPla
 private fun RankSection(
     songs: List<Pair<String, String>>, selected: String?, onSelect: (String) -> Unit, rank: RankUi, uploading: Boolean,
     play: TakePlayUi, actions: TakeActions?,
+    escapeContent: (@Composable (String) -> Unit)? = null,
 ) {
+    var escapeMode by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Dimen.s)) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(AppIcons.Trophy, null, tint = Palette.sub, modifier = Modifier.size(30.dp))
@@ -538,8 +574,15 @@ private fun RankSection(
             Notice(AppIcons.Info, "전국 랭킹 서버가 아직 연결되지 않았습니다.")
             return
         }
+        if (escapeContent != null) {
+            SegmentedTabs(listOf(false, true), escapeMode, { if (it) "가장 빠른 대피(이번 주)" else "점수" }, { if (it) AppIcons.Bolt else AppIcons.Trophy }, { escapeMode = it })
+        }
         Row(Modifier.horizontalScroll(rememberScrollState())) {
             SegmentedTabs(songs.map { it.first }, selected ?: "", { id -> songs.firstOrNull { it.first == id }?.second ?: id }, { null }, onSelect)
+        }
+        if (escapeMode && escapeContent != null && selected != null) {
+            Column(Modifier.fillMaxWidth().card()) { escapeContent(selected) }
+            return@Column
         }
         Column(Modifier.fillMaxWidth().card()) {
             when (rank) {
@@ -568,6 +611,10 @@ private fun RankSection(
                             if (e.take != null && actions != null && selected != null) {
                                 Spacer(Modifier.width(Dimen.m))
                                 ListenButton("$selected/${e.uid}", play, "듣기 ${lengthText(e.take.lengthMs)}", { actions.playOther(selected, e) }, actions.stop)
+                                if (!e.mine && actions.pickGhost != null) {
+                                    Spacer(Modifier.width(Dimen.s))
+                                    AppButton("고스트로 겨루기", { actions.pickGhost.invoke(selected, e) }, icon = AppIcons.Mic, style = ButtonStyle.TONAL)
+                                }
                             }
                         }
                     }
@@ -612,6 +659,7 @@ data class SettingsUi(
     val invertSeat: Boolean,
     val rearSeatsUnreadable: Boolean,
     val passengerUnreadable: Boolean,
+    val ghostPercent: Int = 10,
 )
 
 @Composable
@@ -630,6 +678,7 @@ fun SettingsTab(
     onClear: () -> Unit,
     onDeleteServerTakes: (() -> Unit)? = null,
     serverTakesStatus: String? = null,
+    onGhost: ((Int) -> Unit)? = null,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmRank by remember { mutableStateOf(false) }
@@ -657,6 +706,10 @@ fun SettingsTab(
                     s.rankUpload, { on -> if (on) confirmRank = true else onRankUpload(false) })
                 Divider()
                 NicknameRow(s.nickname, onNickname)
+                if (onGhost != null) {
+                    Divider()
+                    ChoiceRow("고스트 목소리 크기(가이드 음량보다 작게만)", listOf(5, 10, 15), s.ghostPercent, { "$it%" }, onGhost)
+                }
                 if (onDeleteServerTakes != null) {
                     Divider()
                     Row(Modifier.fillMaxWidth().heightIn(min = 112.dp).padding(horizontal = Dimen.l, vertical = Dimen.s), verticalAlignment = Alignment.CenterVertically) {

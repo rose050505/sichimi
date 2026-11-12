@@ -44,14 +44,18 @@ def set_switch(title, on):
     """주차해서 설정 탭의 스위치(제목 [title])를 원하는 값으로 둔다. 화면에 없으면 아래로 민다."""
     cabin_alone("P")
     sh("adb", "shell", "am", "start", "--user", "10", "-n", f"{v.PKG}/.MainActivity"); time.sleep(3)
+    v.dismiss_cards()
     v.tap_text("설정"); time.sleep(1.5)
-    for _ in range(3):
+    for _ in range(4):  # 설정 맨 위로(전에 아래로 내려가 있었을 수 있음)
+        sh("adb", "shell", "input", "swipe", "1700", "450", "1700", "1150", "300")
+    time.sleep(1)
+    for _ in range(8):
         sh("adb", "shell", "uiautomator", "dump", "--user", "10", "/sdcard/ui.xml", check=False)
         xml = sh("adb", "shell", "cat", "/sdcard/ui.xml")
         m = re.search(r'text="%s"[^>]*bounds="\[\d+,(\d+)\]\[\d+,(\d+)\]"' % re.escape(title), xml)
         if m:
             break
-        sh("adb", "shell", "input", "swipe", "1700", "1100", "1700", "400", "400"); time.sleep(1)
+        sh("adb", "shell", "input", "swipe", "1700", "1100", "1700", "700", "900"); time.sleep(1)  # 천천히 조금씩(플링으로 건너뛰지 않게)
     else:
         raise SystemExit(f"설정에서 '{title}'을 찾지 못했다")
     y = (int(m.group(1)) + int(m.group(2))) // 2

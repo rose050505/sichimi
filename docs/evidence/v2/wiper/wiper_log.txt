@@ -1,0 +1,3 @@
+--------- beginning of main
+11-12 02:53:29.110 I/SC.Gate ( 8197): 차 환경 와이퍼=true 밤=true
+11-12 02:53:33.424 I/SC.Gate ( 8197): 차 환경 와이퍼=false 밤=true

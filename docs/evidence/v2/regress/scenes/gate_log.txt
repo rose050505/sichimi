@@ -1,0 +1,25 @@
+--------- beginning of main
+11-12 03:21:48.895 I/SC.Gate (18883): 차 환경 와이퍼=false 밤=true
+11-12 03:21:49.013 I/SC.Gate (18883): 주행 시작 id=1
+11-12 03:21:54.759 I/SC.Gate (18883): 상태 NORMAL -> ARMING
+11-12 03:21:59.759 I/SC.Gate (18883): 상태 ARMING -> KARAOKE
+11-12 03:21:59.759 I/SC.Gate (18883): 가수 음량 -> 0.2 (600ms) seq=1
+11-12 03:22:02.029 I/SC.Gate (18883): 상태 KARAOKE -> NORMAL
+11-12 03:22:02.029 I/SC.Gate (18883): 가수 음량 -> 1.0 (120ms) seq=2
+11-12 03:22:02.055 I/SC.Gate (18883): 들킬 뻔 cause=DOOR reactionMs=254 song=01-arirang pos=7034 가사=null
+11-12 03:22:05.259 I/SC.Gate (18883): 주행 끝 id=1 solo=2270ms 곡=0 들킬뻔=1
+11-12 03:22:12.025 I/SC.Gate (18883): 상태 NORMAL -> ARMING
+11-12 03:22:12.203 I/SC.Gate (18883): 상태 ARMING -> NORMAL
+11-12 03:22:12.353 I/SC.Gate (18883): 상태 NORMAL -> ARMING
+11-12 03:22:12.523 I/SC.Gate (18883): 주행 시작 id=2
+11-12 03:22:20.332 I/SC.Gate (18883): 상태 ARMING -> KARAOKE
+11-12 03:22:20.332 I/SC.Gate (18883): 가수 음량 -> 0.2 (600ms) seq=3
+11-12 03:22:20.334 I/SC.Gate (18883): 휴, 안 들켰다: 들킬 뻔 1 뒤 다시 노래방
+11-12 03:22:20.565 I/SC.Gate (18883): 상태 KARAOKE -> NORMAL
+11-12 03:22:20.565 I/SC.Gate (18883): 가수 음량 -> 1.0 (120ms) seq=4
+11-12 03:22:20.583 I/SC.Gate (18883): 들킬 뻔 cause=WINDOW reactionMs=245 song=01-arirang pos=25572 가사=아리랑 고개로 넘어간다
+11-12 03:22:21.356 I/SC.Gate (18883): 상태 NORMAL -> ARMING
+11-12 03:22:29.357 I/SC.Gate (18883): 상태 ARMING -> KARAOKE
+11-12 03:22:29.357 I/SC.Gate (18883): 가수 음량 -> 0.2 (600ms) seq=5
+11-12 03:22:29.358 I/SC.Gate (18883): 휴, 안 들켰다: 들킬 뻔 2 뒤 다시 노래방
+11-12 03:22:41.664 I/SC.Gate (18883): 주행 끝 id=2 solo=12539ms 곡=1 들킬뻔=1

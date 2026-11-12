@@ -14,6 +14,7 @@
   tools/console.py window front_left 30       # 창문(%)
   tools/console.py gear D                     # 기어: P R N D
   tools/console.py turn left                  # 방향지시등: off left right
+  tools/console.py wiper front Low            # 와이퍼: front rear, Off Auto Low High
 """
 import json
 import sys
@@ -83,6 +84,8 @@ def main(argv):
         put("/vehicle/gear", gear=GEAR[args[0].upper()])
     elif cmd == "turn":
         put("/vehicle/turn-signal", mode=TURN[args[0].lower()])
+    elif cmd == "wiper":
+        put("/vehicle/body", **{f"{args[0]}_wiper": args[1].capitalize()})
     else:
         print("모르는 명령:", cmd, file=sys.stderr)
         return 2

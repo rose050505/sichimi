@@ -38,21 +38,9 @@ def cabin_alone(gear):
 
 
 def set_count_in(on):
-    """주차해서 설정 탭의 스위치를 눌러 원하는 값으로 둔다."""
-    cabin_alone("P")
-    sh("adb", "shell", "am", "start", "--user", "10", "-n", f"{v.PKG}/.MainActivity"); time.sleep(3)
-    v.tap_text("설정"); time.sleep(1.5)
-    sh("adb", "shell", "uiautomator", "dump", "--user", "10", "/sdcard/ui.xml", check=False)
-    xml = sh("adb", "shell", "cat", "/sdcard/ui.xml")
-    m = re.search(r'text="첫 소절 박자 세기"[^>]*bounds="\[\d+,(\d+)\]\[\d+,(\d+)\]"', xml)
-    sw = re.findall(r'checkable="true" checked="(true|false)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml)
-    if not m or not sw:
-        raise SystemExit("설정 화면에서 박자 세기 스위치를 찾지 못했다")
-    y = (int(m.group(1)) + int(m.group(2))) // 2
-    checked, x1, y1, x2, y2 = min(sw, key=lambda s: abs((int(s[2]) + int(s[4])) // 2 - y))
-    if (checked == "true") != on:
-        sh("adb", "shell", "input", "tap", str((int(x1) + int(x2)) // 2), str((int(y1) + int(y2)) // 2))
-        time.sleep(1)
+    """주차해서 설정 탭의 스위치를 원하는 값으로 둔다(설정이 길어져 verify_g5의 찾기를 쓴다: 맨 위로 → 천천히 내림)."""
+    import verify_g5
+    verify_g5.set_switch("첫 소절 박자 세기", on)
     v.shot(f"settings_count_in_{'on' if on else 'off'}")
 
 

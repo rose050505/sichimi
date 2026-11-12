@@ -1,0 +1,4 @@
+--------- beginning of main
+11-12 03:31:03.351 I/SC.Player(27888): playWhenReady=false reason=1
+11-12 03:31:03.598 I/SC.Rank (27888): 녹음 받음: 01-arirang 778398바이트 (244ms)
+11-12 03:31:04.399 I/SC.TakePlay(27888): 녹음 듣기 시작: 01-arirang/xrqC2rluxmf1OCx54c2tnLIB3d33 곡 4310ms부터, 목소리 7310~196686ms

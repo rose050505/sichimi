@@ -22,6 +22,10 @@ data class TakeMeta(val score: Int, val startMs: Long, val lengthMs: Long)
 data class RankEntry(val rank: Int, val nickname: String, val score: Int, val mine: Boolean,
                      val uid: String = "", val take: TakeMeta? = null)
 
+/** 가장 빠른 대피 한 줄. cause: DOOR·SEAT·WINDOW. */
+data class EscapeEntry(val rank: Int, val nickname: String, val ms: Long, val cause: String, val mine: Boolean)
+data class EscapeRanking(val top: List<EscapeEntry>, val myRank: Int?, val total: Int)
+
 /** 한 곡의 랭킹: 위 몇 명과 내 순위(올린 적이 없으면 null). */
 data class SongRanking(val top: List<RankEntry>, val myRank: Int?, val myScore: Int?, val total: Int)
 
@@ -146,6 +150,48 @@ class RankingClient(private val context: Context) {
         val (uid, token) = auth()
         call("DELETE", "$base/rank/${enc(songId)}/takes/$uid", token, null, "application/json")
         Log.i(TAG, "서버의 내 녹음 지움: $songId")
+    }
+
+    // ---------- 가장 빠른 대피(v2) ----------
+
+    /**
+     * 이번 주 이 곡의 내 가장 빠른 대피를 올린다. 서버에 더 빠른(작거나 같은) 기록이 있으면 쓰지 않는다
+     * (규칙도 기록을 늘려 덮어쓰지 못하게 막는다). 경로: `escape/{주}/songs/{곡}/runs/{uid}`.
+     */
+    suspend fun submitEscape(week: String, songId: String, nickname: String, ms: Long, cause: String): Boolean = io {
+        val (uid, token) = auth()
+        val doc = "$base/escape/${enc(week)}/songs/${enc(songId)}/runs/$uid"
+        val old = runCatching { request("GET", doc, token, null) }.getOrNull()
+            ?.optJSONObject("fields")?.optJSONObject("ms")?.optString("integerValue")?.toLongOrNull()
+        if (old != null && old <= ms) return@io false
+        val body = JSONObject().put("fields", JSONObject()
+            .put("nickname", JSONObject().put("stringValue", nickname))
+            .put("ms", JSONObject().put("integerValue", ms.toString()))
+            .put("cause", JSONObject().put("stringValue", cause))
+            .put("at", JSONObject().put("timestampValue", java.time.Instant.now().toString())))
+        request("PATCH", doc, token, body)
+        Log.i(TAG, "대피 기록 올림: $week $songId ${ms}ms $cause")
+        true
+    }
+
+    /** 이번 주 이 곡의 대피 랭킹(빠른 순). */
+    suspend fun escapeRanking(week: String, songId: String, limit: Int = 10): EscapeRanking = io {
+        val uid = prefs.getString("uid", null)
+        val token = if (uid != null) runCatching { auth().second }.getOrNull() else null
+        val query = JSONObject().put("structuredQuery", JSONObject()
+            .put("from", JSONArray().put(JSONObject().put("collectionId", "runs")))
+            .put("orderBy", JSONArray().put(JSONObject().put("field", JSONObject().put("fieldPath", "ms")).put("direction", "ASCENDING")))
+            .put("limit", 200))
+        val arr = requestArray("POST", "$base/escape/${enc(week)}/songs/${enc(songId)}:runQuery", token, query)
+        val rows = (0 until arr.length()).mapNotNull { i ->
+            val d = arr.getJSONObject(i).optJSONObject("document") ?: return@mapNotNull null
+            val f = d.getJSONObject("fields")
+            EscapeEntry(0, f.optJSONObject("nickname")?.optString("stringValue") ?: "?", int(f, "ms"),
+                f.optJSONObject("cause")?.optString("stringValue") ?: "", d.getString("name").substringAfterLast('/') == uid)
+        }
+        val ranked = rows.map { r -> r.copy(rank = rows.indexOfFirst { it.ms == r.ms } + 1) }
+        val me = ranked.firstOrNull { it.mine }
+        EscapeRanking(ranked.take(limit), me?.rank, rows.size)
     }
 
     // ---------- 익명 로그인 ----------

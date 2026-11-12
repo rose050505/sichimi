@@ -74,6 +74,7 @@ def logs(*tags):
 def open_tab(name):
     g5.cabin_alone("P")
     sh("adb", "shell", "am", "start", "--user", "10", "-n", f"{PKG}/.MainActivity"); time.sleep(3)
+    v.dismiss_cards()
     v.tap_text(name); time.sleep(2)
 
 
@@ -192,6 +193,7 @@ def listen(out):
 
 def delete(out):
     open_tab("점수")
+    scroll_top()  # 앞 단계에서 아래로 내려가 있을 수 있다(내 녹음 칸은 위쪽)
     sh("adb", "logcat", "-c")
     tap("지우기"); time.sleep(1)
     shot(out, "h1_delete_confirm")

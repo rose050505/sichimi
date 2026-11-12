@@ -35,6 +35,9 @@ data class ScoreResult(
     val finished: Boolean,
     /** 이번 곡 전의 내 최고 점수(완주한 곡만). 처음이면 null. */
     val previousBest: Int?,
+    /** 고스트 대결 상대 별명과 점수(대결이 아니었으면 null). */
+    val ghostNickname: String? = null,
+    val ghostScore: Int? = null,
 )
 
 /**
@@ -60,6 +63,9 @@ class SingCoach(
     private val positionMs: () -> Long,
 ) {
     private val main = Handler(Looper.getMainLooper())
+
+    /** 고스트 대결 한 판이 끝났을 때(고른 고스트를 지움). Graph가 채운다. */
+    var onDuelDone: suspend (String) -> Unit = {}
     private val mic = MicPitch(::onMicFrame, ::onMicPcm)
 
     private class Clock(val atNanos: Long, val posMs: Long, val playing: Boolean)
@@ -156,10 +162,18 @@ class SingCoach(
         Log.i(TAG, "지연 가정별 점수: " + c.probes.joinToString(" ") { (lag, s) -> "${lag}ms=${s.score}" })
         scope.launch {
             val best = dao.bestScore(c.songId)
+            // 고스트 대결: 완주했을 때만 한 판으로 친다(못 끝냈으면 고른 고스트는 남겨 둔다)
+            val ghost = if (finished) dao.ghostPick(c.songId) else null
+            // revealed=false: 점수 화면을 아직 안 보여 줌. 주차·혼자일 때 덮개 카드로 보여 준다(주행 중에 끝났으면 주차 때 몰아서)
             dao.insertScore(SongScore(songId = c.songId, at = System.currentTimeMillis(), score = score,
-                coverage = c.score.coverage, finished = finished))
-            _last.value = ScoreResult(c.songId, title, score, finished, best)
-            if (karaokeNow && finished) announcer.say(line(title, score, best))
+                coverage = c.score.coverage, finished = finished, revealed = false,
+                ghostUid = ghost?.uid, ghostNickname = ghost?.nickname, ghostScore = ghost?.score))
+            _last.value = ScoreResult(c.songId, title, score, finished, best, ghost?.nickname, ghost?.score)
+            if (ghost != null) {
+                Log.i(TAG, "고스트 대결: 나 ${score}점 vs ${ghost.nickname} ${ghost.score}점 -> ${if (score > ghost.score) "이김" else "짐"}")
+                onDuelDone(c.songId)
+            }
+            if (karaokeNow && finished) announcer.say(line(title, score, best) + (ghost?.let { if (score > it.score) ". 고스트를 이겼어요" else ". 고스트에게 졌어요" } ?: ""))
             if (finished && (best == null || score > best)) {
                 upload(c.songId, score)
                 c.take?.let { keepTake(c.songId, score, it, takeShiftMs(c)) }

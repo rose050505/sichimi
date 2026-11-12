@@ -37,6 +37,24 @@ import app.sichimi.ui.SettingsUi
 import app.sichimi.ui.SongRow
 import app.sichimi.ui.MyTakeUi
 import app.sichimi.ui.TakeActions
+import app.sichimi.ui.KaraokeStage
+import app.sichimi.ui.StageTop
+import app.sichimi.ui.ReplayCard
+import app.sichimi.ui.ReplayUi
+import app.sichimi.ui.RevealCard
+import app.sichimi.ui.RevealOverlay
+import app.sichimi.ui.TourPoster
+import app.sichimi.ui.GhostBanner
+import app.sichimi.ui.GhostBannerUi
+import app.sichimi.ui.EscapeRows
+import app.sichimi.gate.ParkedQueue
+import app.sichimi.gate.Reveal
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import app.sichimi.ui.minutesText
 import app.sichimi.ui.secondsText
 import kotlinx.coroutines.flow.combine
@@ -95,6 +113,24 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
         player.songId?.let { id -> graph.songs.find(id)?.let(graph.songs::lyrics) }.orEmpty()
     }
 
+    // ---------- v2 무대 ----------
+    val stageUi by graph.stage.ui.collectAsStateWithLifecycle()
+    val mascot by graph.stage.mascot.collectAsStateWithLifecycle()
+    val ghostPicks by graph.ghost.picks.collectAsStateWithLifecycle()
+    val dao = graph.db.dao()
+    val unrevealed by remember { dao.unrevealedScores() }.collectAsState(initial = emptyList())
+    val unshown by remember { dao.unshownAwards() }.collectAsState(initial = emptyList())
+    val allScores by remember { dao.allScores() }.collectAsState(initial = emptyList())
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var replay by remember { mutableStateOf<ReplayUi?>(null) }
+    LaunchedEffect(pendingTrip) {
+        replay = pendingTrip?.let { id ->
+            dao.exposuresOfTrip(id).filter { it.reactionMs != null }.minByOrNull { it.reactionMs!! }?.let { e ->
+                ReplayUi(e.cause, e.reactionMs!!, e.lyric, e.songId?.let { graph.songs.find(it)?.title })
+            }
+        }
+    }
+
     var summary by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(pendingTrip) {
         summary = pendingTrip?.let { id ->
@@ -131,7 +167,55 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                 connection::playNow, connection::reserve, connection::removeAt,
             )
         },
-        recordsContent = { RecordsTab(monthRecords(graph)) },
+        recordsContent = {
+            val frame = app.sichimi.ui.rememberFrameClock(true)
+            RecordsTab(monthRecords(graph)) { StageTop(stageUi, mascot, frame) }
+        },
+        stageContent = if (gate.state == app.sichimi.gate.GateState.KARAOKE && gate.solo) ({
+            KaraokeStage(
+                player.songId, player, lyrics, player.songId?.let { graph.songs.find(it)?.credit }.orEmpty(), connection::positionMs,
+                mascot, stageUi.stage, ghostPicks.firstOrNull { it.songId == player.songId }?.nickname,
+                connection::previous, connection::playPause, connection::next,
+            )
+        }) else null,
+        summaryExtra = replay?.let { r -> { ReplayCard(r, stageUi.stage) } },
+        playerOverlay = if (mascot.pose == app.sichimi.gate.MascotPose.HIDING) ({
+            val frame = app.sichimi.ui.rememberFrameClock(true)
+            // 숨는 몸만 그린다(밤 조명·우비 같은 무대 모습은 빼고). 비어 있는 가사 칸 오른쪽 아래.
+            androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().padding(end = 48.dp, bottom = 24.dp), contentAlignment = androidx.compose.ui.Alignment.BottomEnd) {
+                app.sichimi.ui.Mascot(stageUi.stage, mascot.pose, app.sichimi.gate.MascotLook(), androidx.compose.ui.Modifier.size(220.dp), frameMs = frame,
+                    hide = { ((android.os.SystemClock.elapsedRealtime() - mascot.since).toFloat() / app.sichimi.gate.MascotMood.HIDE_MS).coerceIn(0f, 1f) })
+            }
+        }) else null,
+        overlay = {
+            val next = ParkedQueue.next(true, gate.solo, unrevealed.map { it.id }, unshown.map { it.id }, null)
+            val card: RevealCard? = when (next) {
+                is Reveal.Score -> unrevealed.firstOrNull { it.id == next.scoreId }?.let { sc ->
+                    val prev = allScores.filter { it.songId == sc.songId && it.finished && it.at < sc.at }.maxOfOrNull { it.score }
+                    RevealCard.Score(sc.id, graph.songs.find(sc.songId)?.title ?: sc.songId, sc.score, sc.finished, prev,
+                        sc.ghostNickname, sc.ghostScore, unrevealed.size - 1 + unshown.size)
+                }
+                is Reveal.Award -> unshown.firstOrNull { it.id == next.awardId }?.let { a ->
+                    val (title, how) = when (a.kind) {
+                        "BADGE" -> app.sichimi.gate.BadgeId.valueOf(a.key).let { it.title to it.how }
+                        "MISSION" -> app.sichimi.gate.MissionId.valueOf(a.key).title to "이번 주 미션을 해냈어요"
+                        else -> "출근길 투어 완주" to "이번 주 공연 5회"
+                    }
+                    val tour = if (a.kind == "TOUR") TourPoster(a.week, stageUi.setlist.mapNotNull { graph.songs.find(it)?.title }, stageUi.week.soloMs,
+                        stageUi.week.bestScore, stageUi.week.fastestEscapeMs) else null
+                    RevealCard.Award(a.id, a.kind, title, how, a.points, tour, unshown.size - 1)
+                }
+                else -> null
+            }
+            if (card != null) RevealOverlay(card, stageUi.stage, mascot.look) {
+                scope.launch {
+                    when (card) {
+                        is RevealCard.Score -> dao.markRevealed(card.id)
+                        is RevealCard.Award -> dao.markAwardShown(card.id)
+                    }
+                }
+            }
+        },
         scoresContent = {
             val last by graph.coach.lastResult.collectAsStateWithLifecycle()
             val rows by graph.db.dao().scoreRows().collectAsState(initial = emptyList())
@@ -165,6 +249,23 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                 onRankSong = { rankSong = it },
                 rank = rank,
                 uploading = settings.rankUpload,
+                ghostBanner = ghostPicks.firstOrNull()?.let { g ->
+                    { GhostBanner(GhostBannerUi(g.songId, graph.songs.find(g.songId)?.title ?: g.songId, g.nickname, g.score)) { graph.ghost.cancel(g.songId) } }
+                },
+                escapeContent = if (graph.ranking.configured) ({ songId ->
+                    val escVersion by graph.escapes.version.collectAsStateWithLifecycle()
+                    var esc by remember { mutableStateOf<app.sichimi.rank.EscapeRanking?>(null) }
+                    var failed by remember { mutableStateOf(false) }
+                    LaunchedEffect(songId, escVersion) {
+                        failed = false
+                        runCatching { graph.ranking.escapeRanking(stageUi.weekKey, songId) }.onSuccess { esc = it }.onFailure { failed = true }
+                    }
+                    when {
+                        failed -> Text("대피 랭킹을 불러오지 못했습니다. 네트워크를 확인해 주세요.", style = app.sichimi.ui.Type.bodyM, color = app.sichimi.ui.Palette.dim, modifier = androidx.compose.ui.Modifier.padding(32.dp))
+                        esc == null -> Text("불러오는 중…", style = app.sichimi.ui.Type.bodyM, color = app.sichimi.ui.Palette.dim, modifier = androidx.compose.ui.Modifier.padding(32.dp))
+                        else -> EscapeRows(esc!!.top, esc!!.myRank, esc!!.total, settings.rankUpload)
+                    }
+                }) else null,
                 recording = settings.rankUpload && graph.ranking.configured,
                 myTakes = localTakes.map { t ->
                     MyTakeUi(t.songId, graph.songs.find(t.songId)?.title ?: t.songId, t.score, t.lengthMs, t.bitrate / 1000,
@@ -193,6 +294,7 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                     stop = graph.takePlayer::stop,
                     upload = graph.uploader::upload,
                     delete = { id -> if (graph.takePlayer.state.value.key == "mine:$id") graph.takePlayer.stop(); graph.uploader.delete(id) },
+                    pickGhost = { id, e -> graph.ghost.pick(id, e) },
                 ),
             )
         },
@@ -213,6 +315,7 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                     invertSeat = settings.invertSeatOccupancy,
                     rearSeatsUnreadable = listOf(Zone.REAR_LEFT, Zone.REAR_RIGHT).any { gate.cabin.seats[it] == Reading.Unsupported },
                     passengerUnreadable = gate.cabin.seats[Zone.FRONT_RIGHT] == Reading.Unsupported,
+                    ghostPercent = settings.ghostPercent,
                 ),
                 onEnabled = { v -> graph.settings.update { it.copy(enabled = v) } },
                 onGuide = { v -> graph.settings.update { it.copy(guidePercent = v) } },
@@ -223,6 +326,7 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                 onScoring = setScoring,
                 onRankUpload = { v ->
                     graph.settings.update { it.copy(rankUpload = v) }
+                    if (v) graph.escapes.retryPending()
                     if (v) graph.coach.uploadAllBests()
                 },
                 onNickname = { v ->
@@ -230,7 +334,8 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                     if (settings.rankUpload) graph.coach.uploadAllBests()
                 },
                 onInvert = { v -> graph.settings.update { it.copy(invertSeatOccupancy = v) } },
-                onClear = { graph.controller.clearRecords(); graph.takePlayer.stop(); graph.takes.deleteAll() },
+                onClear = { graph.controller.clearRecords(); graph.takePlayer.stop(); graph.takes.deleteAll(); scope.launch { graph.ghost.clearAll() } },
+                onGhost = { v -> graph.settings.update { it.copy(ghostPercent = v) } },
                 onDeleteServerTakes = if (graph.ranking.configured) ({
                     serverTakesStatus = "지우는 중…"
                     graph.uploader.deleteAllOnServer(graph.songs.songs().map { it.id }) { ok ->

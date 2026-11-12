@@ -27,6 +27,8 @@ pairs = [(t, b, 4.5) for t in ("text", "sub", "dim") for b in ("bg", "surface", 
 pairs += [("text", "control", 4.5), ("sub", "control", 4.5), ("text", "accentFill", 4.5), ("text", "accentPressed", 4.5),
           ("karaoke", "karaokeTint", 4.5), ("karaoke", "bg", 4.5), ("karaoke", "surface", 4.5), ("karaoke", "surfaceHi", 4.5),
           ("onKaraoke", "karaoke", 4.5), ("danger", "dangerTint", 4.5), ("danger", "surface", 4.5), ("accent", "bg", 4.5), ("accent", "surface", 4.5)]
+pairs += [(t, b, 4.5) for t in ("text", "sub", "karaoke", "spot") for b in ("stageBg", "stageSurface")]
+pairs += [("mascotInk", "mascot", 4.5)]
 bad = 0
 for t, b, need in pairs:
     r = ratio(t, b)

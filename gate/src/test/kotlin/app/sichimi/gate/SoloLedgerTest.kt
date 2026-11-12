@@ -108,3 +108,18 @@ class SoloLedgerTest {
         assertNull(ledger.currentPlay(9_000))
     }
 }
+
+class SoloLedgerEnvTest {
+    @Test fun `와이퍼와 밤 동안 혼자 부른 시간을 따로 센다`() {
+        val l = SoloLedger()
+        l.onGear(Gear.DRIVE, 0)
+        l.onPlayback("a#1", "a", true, 0)
+        l.onGateState(GateState.KARAOKE, 0)
+        l.onEnv(wiper = true, isNight = false, nowMs = 10_000)
+        l.onEnv(wiper = false, isNight = true, nowMs = 25_000)
+        val p = l.currentPlay(40_000)!!
+        org.junit.Assert.assertEquals(40_000L, p.soloMs)
+        org.junit.Assert.assertEquals(15_000L, p.rainSoloMs)
+        org.junit.Assert.assertEquals(15_000L, p.nightSoloMs)
+    }
+}

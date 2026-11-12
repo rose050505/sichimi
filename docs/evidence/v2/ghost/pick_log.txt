@@ -1,0 +1,3 @@
+--------- beginning of main
+11-12 02:58:17.793 I/SC.Rank ( 4915): 녹음 받음: 01-arirang 765882바이트 (585ms)
+11-12 02:58:18.757 I/SC.Ghost( 4915): 고스트 고름: 01-arirang test-delete 80점 185088ms
