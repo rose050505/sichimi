@@ -36,7 +36,8 @@ def dump():
 
 def find(text, xml=None, partial=False):
     xml = xml or dump()
-    pat = (r'text="[^"]*%s[^"]*"' if partial else r'text="%s"') % re.escape(text)
+    # 글자(text)나 아이콘 버튼의 이름(content-desc)으로 찾는다(v3 단상의 듣기·고스트 버튼은 아이콘)
+    pat = (r'(?:text|content-desc)="[^"]*%s[^"]*"' if partial else r'(?:text|content-desc)="%s"') % re.escape(text)
     m = re.search(pat + r'[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml)
     if not m:
         return None

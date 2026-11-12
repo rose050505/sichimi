@@ -119,7 +119,7 @@ def plain(out):
     v1 = os.path.join(os.path.dirname(os.path.dirname(out.rstrip("/"))), "after")
     rows = []
     # 움직이는 칸(가림): 상태 표시줄 시계, 재생 탭의 진행 막대·경과 시간·가사 칸
-    masks = {"03_parked_player_passenger": [(854 + 32, 90 + 1050, 854 + 700, 90 + 1130), (854 + 760, 90 + 120, 2536, 1300)],
+    masks = {"03_parked_player_passenger": [(854 + 32, 90 + 950, 854 + 700, 90 + 1130), (854 + 760, 90 + 120, 2536, 1300)],
              "02_driving_passenger": [], "04_parked_queue_passenger": []}
     for name in ("02_driving_passenger", "03_parked_player_passenger", "04_parked_queue_passenger"):
         a = Image.open(os.path.join(v1, name + ".png")).convert("RGB").crop((854, 90, 2536, 1300))
@@ -127,13 +127,13 @@ def plain(out):
         d = ImageChops.difference(a, b).convert("L").point(lambda x: 255 if x > 24 else 0)
         for (x1, y1, x2, y2) in masks[name]:
             d.paste(0, (x1 - 854, y1 - 90, x2 - 854, y2 - 90))
-        diff = sum(1 for p in d.getdata() if p) / (d.width * d.height)
+        n = sum(1 for p in d.getdata() if p)
         d.save(os.path.join(out, name + "_diff.png"))
-        rows.append((name, diff))
+        rows.append((name, n / (d.width * d.height), n))
     with open(os.path.join(out, "result.md"), "w") as f:
-        f.write("| 장면 | 1차(after/)와 다른 화소 비율 | 가림 |\n|---|---|---|\n")
-        for name, diff in rows:
-            f.write(f"| {name} | {diff * 100:.3f}% | {'진행 막대·경과 시간·가사 칸' if masks[name] else '없음'} |\n")
+        f.write("| 장면 | 1차(after/)와 다른 화소 비율 | 다른 화소 수 | 가림 |\n|---|---|---|---|\n")
+        for name, diff, n in rows:
+            f.write(f"| {name} | {diff * 100:.3f}% | {n} | {'진행 막대·경과 시간·가사 칸' if masks[name] else '없음'} |\n")
     print(open(os.path.join(out, "result.md")).read())
 
 
@@ -163,13 +163,14 @@ def ghost_pick(out):
     for _ in range(4):
         xml = u.dump()
         nodes = re.findall(r'<node [^>]*>', xml)
-        btns = [n for n in nodes if 'text="고스트로 겨루기"' in n]
+        btns = [n for n in nodes if 'text="고스트로 겨루기"' in n or 'content-desc="고스트로 겨루기"' in n]
         def cy(n):
             b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()
             return (int(b[0]) + int(b[2])) // 2, (int(b[1]) + int(b[3])) // 2
         if want:
-            rows = [cy(n)[1] for n in nodes if f'text="{want}"' in n]
-            btns = [b for b in btns if rows and min(abs(cy(b)[1] - r) for r in rows) < 40]
+            rows = [(cy(n)[1], cy(n)[0]) for n in nodes if f'text="{want}"' in n]
+            # 4위부터는 같은 줄, 1~3위 단상은 점수 바로 아래에 버튼이 있다
+            btns = [b for b in btns if rows and min(abs(cy(b)[1] - r) if abs(cy(b)[0] - x) < 260 or abs(cy(b)[1] - r) < 40 else 9999 for r, x in rows) < 160]
         if btns:
             x, y = cy(btns[0]); sh("adb", "shell", "input", "tap", str(x), str(y))
             break

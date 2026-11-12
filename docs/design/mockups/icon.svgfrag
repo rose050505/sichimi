@@ -1,0 +1,13 @@
+ <defs>
+  <radialGradient id="sp" cx="54" cy="30" r="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4A1B4E"/><stop offset="1" stop-color="#140D24"/></radialGradient>
+ </defs>
+ <rect width="108" height="108" fill="url(#sp)"/>
+ <path d="M24 80 C24 56 38 42 54 42 C70 42 84 56 84 80 Z" fill="#FFE6C4"/>
+ <path d="M47 44.5 C50 39 54 33 62 28.5 C60 34 60 39 64 44 Z" fill="#FF5FA8"/>
+ <circle cx="45" cy="62" r="6" fill="#fff"/><circle cx="63" cy="62" r="6" fill="#fff"/>
+ <circle cx="47.4" cy="60" r="3.1" fill="#2A1C2A"/><circle cx="65.4" cy="60" r="3.1" fill="#2A1C2A"/>
+ <rect x="0" y="76" width="108" height="32" fill="#140D24"/>
+ <rect x="18" y="75" width="72" height="3.4" rx="1.7" fill="#8E7FAE"/>
+ <path d="M77 36 L77 48.5" stroke="#FFC65C" stroke-width="2.6" stroke-linecap="round"/>
+ <path d="M77 36 L83 38" stroke="#FFC65C" stroke-width="2.6" stroke-linecap="round"/>
+ <circle cx="74.6" cy="49" r="3.2" fill="#FFC65C"/>

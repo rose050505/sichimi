@@ -134,4 +134,26 @@ object AppIcons {
             curveTo(15.8f, 4.5f, 16.5f, 5f, 16.8f, 5.8f); lineTo(18.5f, 10.5f); close()
             round(3.5f, 10f, 17f, 7f, 2f); round(5f, 16f, 3.6f, 3.6f, 1.2f); round(15.4f, 16f, 3.6f, 3.6f, 1.2f) }
     }
+
+    // ---- v3 한밤 무대에서 더한 것(같은 24 격자·선 2.2 규칙) ----
+    val Help = icon("help") {
+        line { moveTo(3f, 12f); arcTo(9f, 9f, 0f, true, true, 21f, 12f); arcTo(9f, 9f, 0f, true, true, 3f, 12f)
+            moveTo(9.3f, 9.4f); curveTo(9.3f, 7.8f, 10.5f, 6.6f, 12.1f, 6.6f); curveTo(13.7f, 6.6f, 14.9f, 7.8f, 14.9f, 9.3f)
+            curveTo(14.9f, 10.6f, 14.1f, 11.4f, 12.9f, 11.9f); curveTo(12.3f, 12.2f, 12f, 12.7f, 12f, 13.4f); lineTo(12f, 14f) }
+        fill { circle(12f, 17.2f, 1.35f) }
+    }
+    val Star = icon("star") {
+        fill { moveTo(12f, 3f); lineTo(14.6f, 8.6f); lineTo(20.7f, 9.3f); lineTo(16.2f, 13.5f); lineTo(17.4f, 19.5f)
+            lineTo(12f, 16.6f); lineTo(6.6f, 19.5f); lineTo(7.8f, 13.5f); lineTo(3.3f, 9.3f); lineTo(9.4f, 8.6f); close() }
+    }
+    val Moon = icon("moon") {
+        fill { moveTo(15f, 3f); arcTo(8.5f, 8.5f, 0f, true, false, 21f, 16f); arcTo(7f, 7f, 0f, false, true, 15f, 3f); close() }
+    }
+    val Drop = icon("drop") {
+        fill { moveTo(12f, 3f); curveTo(7.5f, 7f, 5f, 10.4f, 5f, 13.3f); arcTo(7f, 7f, 0f, false, false, 19f, 13.3f); curveTo(19f, 10.4f, 16.5f, 7f, 12f, 3f); close() }
+    }
+    val Ghost = icon("ghost") {
+        fill { moveTo(5f, 20f); lineTo(5f, 11f); arcTo(7f, 7f, 0f, false, true, 19f, 11f); lineTo(19f, 20f); lineTo(16.7f, 18.4f)
+            lineTo(14.3f, 20f); lineTo(12f, 18.4f); lineTo(9.7f, 20f); lineTo(7.3f, 18.4f); close() }
+    }
 }

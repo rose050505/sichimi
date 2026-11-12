@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 시치미 아이콘 앞면(자체 디자인): 소리 막대 다섯 개. 오른쪽으로 갈수록 흐려져 "목소리가 슬쩍 줄어드는" 모양.
-     평범한 음악 앱처럼 보이고, 다른 브랜드·캐릭터를 본뜨지 않았다. 108dp 격자, 안전 영역(66dp) 안. -->
+<!-- 시치미 아이콘 v3 앞면(자체 디자인): 계기판 선 위로 떡 모양 시치미가 상어지느러미 안테나와 두 눈만 빼꼼(숨는 중), 금색 음표 하나.
+     얼굴만 보여 평범한 음악 앱처럼도 읽힌다. 기존 캐릭터·브랜드를 본뜨지 않았다. 108dp 격자, 안전 영역(66dp) 안. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M24.0,47.0 a4.0,4.0 0 0 1 8.0,0 v14.0 a4.0,4.0 0 0 1 -8.0,0 z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M37.0,39.0 a4.0,4.0 0 0 1 8.0,0 v30.0 a4.0,4.0 0 0 1 -8.0,0 z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M50.0,33.0 a4.0,4.0 0 0 1 8.0,0 v42.0 a4.0,4.0 0 0 1 -8.0,0 z" />
-    <path android:fillColor="#8CFFFFFF" android:pathData="M63.0,42.0 a4.0,4.0 0 0 1 8.0,0 v24.0 a4.0,4.0 0 0 1 -8.0,0 z" />
-    <path android:fillColor="#59FFFFFF" android:pathData="M76.0,49.0 a4.0,4.0 0 0 1 8.0,0 v10.0 a4.0,4.0 0 0 1 -8.0,0 z" />
+    <path android:fillColor="#FFFFE6C4" android:pathData="M24,80 C24,56 38,42 54,42 C70,42 84,56 84,80 Z" />
+    <path android:fillColor="#FFFF5FA8" android:pathData="M47,44.5 C50,39 54,33 62,28.5 C60,34 60,39 64,44 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M39,62 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0 Z M57,62 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0 Z" />
+    <path android:fillColor="#FF2A1C2A" android:pathData="M44.3,60 a3.1,3.1 0 1,0 6.2,0 a3.1,3.1 0 1,0 -6.2,0 Z M62.3,60 a3.1,3.1 0 1,0 6.2,0 a3.1,3.1 0 1,0 -6.2,0 Z" />
+    <path android:fillColor="#FF140D24" android:pathData="M0,76 H108 V108 H0 Z" />
+    <path android:fillColor="#FF8E7FAE" android:pathData="M19.7,75 H88.3 a1.7,1.7 0 0,1 0,3.4 H19.7 a1.7,1.7 0 0,1 0,-3.4 Z" />
+    <path android:strokeColor="#FFFFC65C" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M77,36 L77,48.5 M77,36 L83,38" />
+    <path android:fillColor="#FFFFC65C" android:pathData="M71.4,49 a3.2,3.2 0 1,0 6.4,0 a3.2,3.2 0 1,0 -6.4,0 Z" />
 </vector>

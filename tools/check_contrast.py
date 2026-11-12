@@ -9,6 +9,20 @@ import sys
 
 SRC = os.path.join(os.path.dirname(__file__), "..", "app/src/main/java/app/sichimi/ui/Theme.kt")
 pal = {k: v[-6:] for k, v in re.findall(r"val (\w+) = Color\(0x([0-9A-Fa-f]{8})\)", open(SRC, encoding="utf-8").read())}
+# v3 한밤 무대(Night.kt): 이름 앞에 n_를 붙인다. 반투명 glass는 무대 바탕 위에 겹친 값으로 본다.
+NIGHT = os.path.join(os.path.dirname(SRC), "Night.kt")
+night_src = open(NIGHT, encoding="utf-8").read().split("object Night {")[1].split("\n}")[0]
+pal.update({"n_" + k: v[-6:] for k, v in re.findall(r"val (\w+) = Color\(0x([0-9A-Fa-f]{8})\)", night_src)})
+
+
+def over(fg_argb, bg_hex):
+    a = int(fg_argb[:2], 16) / 255
+    f = [int(fg_argb[2:][i:i + 2], 16) for i in (0, 2, 4)]
+    b = [int(bg_hex[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % round(a * x + (1 - a) * y) for x, y in zip(f, b))
+
+
+pal["n_glassOnBg"] = over("D1140D24", pal["n_bg"])
 
 
 def lum(h):
@@ -29,6 +43,14 @@ pairs += [("text", "control", 4.5), ("sub", "control", 4.5), ("text", "accentFil
           ("onKaraoke", "karaoke", 4.5), ("danger", "dangerTint", 4.5), ("danger", "surface", 4.5), ("accent", "bg", 4.5), ("accent", "surface", 4.5)]
 pairs += [(t, b, 4.5) for t in ("text", "sub", "karaoke", "spot") for b in ("stageBg", "stageSurface")]
 pairs += [("mascotInk", "mascot", 4.5)]
+# v3 한밤 무대
+nb = ("n_bg", "n_card", "n_raised", "n_pinkTint", "n_glassOnBg")
+pairs += [(t, b, 4.5) for t in ("n_text", "n_sub", "n_dim", "n_pink", "n_gold") for b in nb]
+pairs += [("n_ok", b, 4.5) for b in ("n_card", "n_raised", "n_okTint")]
+pairs += [("n_danger", b, 4.5) for b in ("n_card", "n_dangerTint")]
+pairs += [("n_info", b, 4.5) for b in ("n_card", "n_raised")]
+pairs += [("n_onPink", "n_pink", 4.5), ("n_onPink", "n_pinkPressed", 4.5), ("n_onGold", "n_gold", 4.5), ("n_gold", "n_goldTint", 4.5),
+          ("n_text", "n_pressed", 4.5), ("n_sub", "n_pressed", 4.5)]
 bad = 0
 for t, b, need in pairs:
     r = ratio(t, b)

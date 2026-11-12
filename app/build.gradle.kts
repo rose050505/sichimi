@@ -54,6 +54,10 @@ android {
             isMinifyEnabled = false
             signingConfig = releaseSigning
         }
+        // 문서용 캡처(디자인 미리보기)를 앱 데이터를 지우지 않고 깔 때만: ./gradlew :app:assembleDebug -PsignDebugWithRelease
+        debug {
+            if (project.hasProperty("signDebugWithRelease") && releaseSigning != null) signingConfig = releaseSigning
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -1,0 +1,7 @@
+--------- beginning of main
+11-12 06:47:46.885 I/SC.Gate ( 3346): 상태 KARAOKE -> NORMAL
+11-12 06:47:46.885 I/SC.Gate ( 3346): 가수 음량 -> 1.0 (120ms) seq=4
+11-12 06:47:46.925 I/SC.Gate ( 3346): 들킬 뻔 cause=DOOR reactionMs=256 song=03-wade pos=17042 가사=A thousand months in a bell jar suffocate Pay your dues to the neon magistrate
+11-12 06:47:46.925 I/SC.Escape( 3346): 이번 주 새 대피 기록: 03-wade 256ms
+11-12 06:47:47.214 I/SC.Rank ( 3346): 대피 기록 올림: 2026-W46 03-wade 256ms DOOR
+11-12 06:47:51.040 I/SC.Gate ( 3346): 상태 NORMAL -> ARMING

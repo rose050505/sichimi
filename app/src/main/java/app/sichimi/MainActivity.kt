@@ -165,6 +165,7 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                 player,
                 graph.songs.songs().map { SongRow(it.id, it.title, it.artist) },
                 connection::playNow, connection::reserve, connection::removeAt,
+                night = gate.solo && gate.state == app.sichimi.gate.GateState.KARAOKE,
             )
         },
         recordsContent = {
@@ -261,8 +262,8 @@ private fun App(graph: Graph, connection: PlayerConnection, setScoring: (Boolean
                         runCatching { graph.ranking.escapeRanking(stageUi.weekKey, songId) }.onSuccess { esc = it }.onFailure { failed = true }
                     }
                     when {
-                        failed -> Text("대피 랭킹을 불러오지 못했습니다. 네트워크를 확인해 주세요.", style = app.sichimi.ui.Type.bodyM, color = app.sichimi.ui.Palette.dim, modifier = androidx.compose.ui.Modifier.padding(32.dp))
-                        esc == null -> Text("불러오는 중…", style = app.sichimi.ui.Type.bodyM, color = app.sichimi.ui.Palette.dim, modifier = androidx.compose.ui.Modifier.padding(32.dp))
+                        failed -> Text("대피 랭킹을 불러오지 못했습니다. 네트워크를 확인해 주세요.", style = app.sichimi.ui.Type.bodyM, color = app.sichimi.ui.Night.sub, modifier = androidx.compose.ui.Modifier.padding(32.dp))
+                        esc == null -> Text("불러오는 중…", style = app.sichimi.ui.Type.bodyM, color = app.sichimi.ui.Night.sub, modifier = androidx.compose.ui.Modifier.padding(32.dp))
                         else -> EscapeRows(esc!!.top, esc!!.myRank, esc!!.total, settings.rankUpload)
                     }
                 }) else null,
