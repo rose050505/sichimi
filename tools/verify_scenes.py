@@ -54,7 +54,13 @@ def wait_state(name, timeout):
 def tap_text(text):
     sh("adb", "shell", "uiautomator", "dump", "--user", "10", "/sdcard/ui.xml", check=False)
     xml = sh("adb", "shell", "cat", "/sdcard/ui.xml")
-    m = re.search(r'text="%s"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"' % re.escape(text), xml)
+    # 글자(text)나 아이콘 버튼의 이름(content-desc)으로 찾는다
+    m = None
+    for node in re.findall(r'<node [^>]*>', xml):
+        if re.search(r'(?:text|content-desc)="%s"' % re.escape(text), node):
+            m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
+            if m:
+                break
     if not m:
         return False
     x1, y1, x2, y2 = map(int, m.groups())

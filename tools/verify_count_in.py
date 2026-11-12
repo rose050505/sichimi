@@ -69,7 +69,7 @@ def run(name, passenger_door_open):
     v.tap_text("재생") or sh("adb", "shell", "input", "tap", "1693", "812")
     time.sleep(REC_SEC)
     rec.terminate(); rec.wait()
-    sh("adb", "shell", "input", "tap", "1693", "812")  # 멈춤
+    v.tap_text("일시정지")  # 멈춤
     log = sh("adb", "logcat", "-d", "-s", "SC.Gate:I", "SC.Mixer:I")
     with open(os.path.join(OUT, f"{name}_log.txt"), "w") as f:
         f.write(log)

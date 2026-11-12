@@ -35,8 +35,9 @@
 | 항목 | 이 앱에서 | 증거 |
 |---|---|---|
 | 차량특화성 | 좌석 착석·문·창문·기어·방향지시등 신호로 "혼자이고 닫힌 차"를 판정하는 문지기(상태 기계). 휴대폰에서는 알 수 없는 차 안 상황에만 열린다 | 아래 [문지기와 신호](#문지기와-신호), 상태 기계 [`gate/`](gate/src/main/kotlin/app/sichimi/gate/PrivacyGate.kt) |
-| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점 단위 테스트 77개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
+| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점·녹음 단위 테스트 87개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
 | 창의성 | 노래방을 사용자가 켜지 않는다. 동승자가 타거나 문·창문이 열리면 앱이 먼저 시치미를 뗀다. 혼자가 아닐 때는 화면 어디에도 "노래방"이 없다 | 장면 2·3 스크린샷 [`docs/evidence/scenes/`](docs/evidence/scenes/) |
+| 화면(Pleos UI 가이드) | Pleos 다크 토큰 색, 시스템 글꼴(Asta Sans)과 가이드 크기 체계(본문 24sp 이상), 주행 화면 버튼 136dp, 글자 대비 4.5:1 이상, 애니메이션 없음. 노래방 색(호박색)은 혼자일 때만 보이는 곳에만 | 디자인 체계 [`ui/Theme.kt`](app/src/main/java/app/sichimi/ui/Theme.kt), 대비 검사 [`tools/check_contrast.py`](tools/check_contrast.py), 전·후 비교 [`docs/evidence/ui/compare/`](docs/evidence/ui/compare/) |
 
 ## 문지기와 신호
 
@@ -60,6 +61,7 @@
 - 노래방일 때는 곡의 첫 소절 바로 앞 네 박에 드럼 스틱 소리(탁, 탁, 탁, 탁)로 박자를 세어 줍니다(설정 「첫 소절 박자 세기」, 기본 켬). 박자 소리는 곡 파일의 다섯 번째 채널이라 곡 박자와 표본 단위로 맞고, 혼자가 아니게 되면 가수 목소리와 함께 바로 빠집니다(검증기록 "박자 세기").
 - 스스로 재생을 시작하지 않습니다. 사용자가 재생한 곡의 가수 음량만 바꿉니다.
 - 주행 중(기어 P가 아니거나 주행 규제)에는 상태·곡·버튼 셋만 있는 화면입니다. 가사와 목록은 주차 중에만 보입니다.
+- 화면은 Pleos UI 디자인 가이드의 다크 테마 값(배경 #131417·#1D1E21, 표면 #313236, 버튼 #44464E, 미디어 강조색)과 크기 체계(Headline 56, Title 40·36·32, Body 30·28·26, Label 24)를 따릅니다. 아이콘은 직접 그린 한 벌(24 격자)이고, 눌렀을 때는 색만 바뀝니다. 노래방을 나타내는 호박색은 노래방 상태 표시와 혼자일 때만 보이는 탭(내 기록, 점수)에만 쓰여, 동승자가 볼 수 있는 화면에는 나오지 않습니다.
 
 ## SDK 호출
 
@@ -85,7 +87,7 @@
 
 ## APK
 
-`apk/Graphite_Sichimi_release.apk` (release 빌드, 62MB). 앞선 빌드들로 장면 1~8, 박자 세기, 노래 점수(가상 마이크), 전국 랭킹 서버 연결을 에뮬레이터에서 확인했고, 이 빌드로 랭킹 녹음(녹음·미리 듣기·주행/동승자 때 멈춤)과 장면 1~5, 8 회귀를 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
+`apk/Graphite_Sichimi_release.apk` (release 빌드, 63MB). 앞선 빌드들로 장면 1~8, 박자 세기, 노래 점수(가상 마이크), 전국 랭킹 서버 연결을 에뮬레이터에서 확인했고, 이 빌드(화면 다듬기)로 장면 1~5, 8과 랭킹 녹음(녹음·미리 듣기·주행/동승자 때 멈춤·서버에 올리고 받아 듣고 지우기)을 다시 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
 
 직접 빌드하려면:
 

@@ -1,0 +1,5 @@
+--------- beginning of main
+11-12 00:14:49.749 I/SC.TakePlay(12714): 녹음 듣기 시작: mine:01-arirang 곡 4296ms부터, 목소리 7296~196672ms
+11-12 00:14:54.721 I/SC.Gate (12714): 상태 KARAOKE -> NORMAL
+11-12 00:14:54.721 I/SC.Gate (12714): 가수 음량 -> 1.0 (120ms) seq=2
+11-12 00:14:54.722 I/SC.TakePlay(12714): 녹음 듣기 멈춤: 기어=PARK 주행규제=false 혼자=false

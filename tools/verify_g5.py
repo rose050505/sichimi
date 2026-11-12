@@ -99,11 +99,11 @@ def main():
         time.sleep(max(0.0, t_start + 30 - time.time()))
         c("door", "front_right", "open")
     time.sleep(max(0.0, t_start + sec - time.time()))
-    sh("adb", "shell", "input", "tap", "2254", "812")  # 다음 곡: 앞 곡의 점수를 마무리한다
+    v.tap_text("다음 곡")  # 앞 곡의 점수를 마무리한다
     time.sleep(2)
     if player:
         player.terminate()
-    sh("adb", "shell", "input", "tap", "1693", "812")  # 멈춤
+    v.tap_text("일시정지")  # 멈춤
     time.sleep(1)
     logs = sh("adb", "logcat", "-d", "-v", "time", "-s", "SC.Score:I", "SC.Mic:I", "SC.Gate:I", "SC.Tts:I")
     with open(os.path.join(out, f"{case}_log.txt"), "w") as f:
