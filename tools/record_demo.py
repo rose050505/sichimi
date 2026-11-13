@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """시연 영상 녹화(11/13). 에뮬레이터 화면·소리·콘솔 탭·이벤트 시각을 따로 담고, 합치기는 compose_demo.py가 한다.
 
-- 에뮬레이터 화면: adb shell screenrecord(1920x1080, 한 조각 180초까지). 조각 시작 시각은 합칠 때 문지기 로그와 화면 변화로 맞춘다.
+- 에뮬레이터 화면: adb shell screenrecord(본 녹화 1280x720 6Mbps, 가사 1920x1080 16Mbps, 한 조각 180초까지). 조각 시작 시각은 합칠 때
+  문지기 로그와 화면 변화로 맞춘다. screenrecord는 에뮬레이터 안 소프트웨어 인코더라 CPU를 많이 쓴다. 11/13 첫 본 녹화(1080p)에서
+  후진(후방 카메라 앱이 같이 돎)과 내비 안내 음성 때 호스트 CPU가 모자라 소리가 끊겼다 → 본 녹화는 크기를 줄인다(합칠 때 1440x810으로 줄이므로 손해 없음).
+- 콘솔 탭(헤드리스 크로미움)은 nice 10으로 띄워 에뮬레이터 소리 스레드에 CPU를 양보한다.
+- 본 녹화 전에 내비 경로 안내와 TTS를 한 번 돌려 둔다(처음 돌 때 무거워 소리가 끊겼다).
 - 소리: parecord --monitor-stream으로 qemu 출력 스트림만 받는다(호스트 스피커 음량·음소거와 상관없고 다른 소리가 섞이지 않는다).
 - 콘솔 탭: tools/console_tab.js가 8088 콘솔 페이지를 헤드리스로 열어 프레임을 저장하고, 문·창문·기어는 그 페이지의 버튼을 실제로 누른다.
   좌석(착석)은 콘솔 페이지 첫 화면에 버튼이 없어 콘솔 페이지와 같은 HTTP 경로(tools/console.py)로 바꾼다.
@@ -43,6 +47,7 @@ class Rec:
         os.makedirs(out, exist_ok=True)
         self.events, self.segs, self.screen, self.t0 = [], [], None, None
         self.shift = 0.0                      # 앞 장면이 늦어진 만큼 뒤 일정을 미룬다
+        self.screen_opts = ("1920x1080", "16000000")
 
     def ev(self, kind, text="", **kw):
         e = {"t": time.time(), "kind": kind, "text": text, **kw}
@@ -56,7 +61,7 @@ class Rec:
 
     # ---- 녹화 시작·끝 ----
     def start(self):
-        self.tab = subprocess.Popen(["node", os.path.join(HERE, "console_tab.js"), os.path.join(self.out, "console")],
+        self.tab = subprocess.Popen(["env", "SCREENCAST_NTH=2", "nice", "-n", "10", "node", os.path.join(HERE, "console_tab.js"), os.path.join(self.out, "console")],
                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
         line = self.tab.stdout.readline()
         if not line.startswith("ready"):
@@ -91,10 +96,11 @@ class Rec:
             self.tab.kill()
 
     def screen_start(self, name):
+        size, rate = self.screen_opts
         dev = f"/sdcard/{name}.mp4"
         vs.sh("adb", "shell", "rm", "-f", dev, check=False)
         t = time.time()
-        p = subprocess.Popen(["adb", "shell", "screenrecord", "--size", "1920x1080", "--bit-rate", "16000000",
+        p = subprocess.Popen(["adb", "shell", "screenrecord", "--size", size, "--bit-rate", rate,
                               "--time-limit", "180", dev])
         self.screen = (name, dev, p, t)
         self.ev("screen_start", name)
@@ -298,11 +304,38 @@ def run_test(out):
     r.stop()
 
 
+def warm_navi_tts():
+    """본 녹화 전에 노래방에서 3분 목적지로 길 안내를 한 번 시작해 「도착까지 3분」을 말하게 하고 안내를 끝낸다.
+    내비 경로 계산과 TTS 엔진이 처음 돌 때 무거워 녹화 중 소리가 끊겼다(11/13 첫 본 녹화 1:25 근처)."""
+    try:
+        prep_karaoke(clear=False)
+    except SystemExit as e:              # 다음 곡 예약이 안 들어가도 미리 돌리기는 한다
+        print("미리 돌리기 준비:", e)
+    since = time.time()
+    ok = s7.set_destination()
+    said = wait_log("말하기 끝", 30, since) if ok else None
+    s7.open_navi(2.5)
+    b = s7.bounds_of("안내 종료")
+    if b:
+        s7.tap((b[0] + b[2]) // 2, (b[1] + b[3]) // 2, 1.5)
+    print("미리 돌리기: 길 안내", ok, "말하기", said is not None)
+    vs.c("gear", "P")
+
+
+# 내비 남은 시간은 시간대에 따라 바뀐다. 더몰트하우스 서핑시티(330m)는 낮 3분·밤 2분이라 밤에는 「한 곡 더」(3~5분) 밖이다.
+# 영상은 3~5분 한가운데인 곳을 쓴다(11/14 0시에 4분, 1.2km).
+DEMO_DEST = os.environ.get("DEMO_DEST", "뚜레쥬르 판교위든타워점")
+
+
 def run_main(out):
+    s7.DEST = DEMO_DEST
+    print("내비 첫 화면:", s7.reset_navi())
+    warm_navi_tts()
     print("내비 첫 화면:", s7.reset_navi())
     # pm clear를 하면 첫 노래방에서 「첫 무대」 칭호 카드가 떠 무대를 덮는다. 칭호를 이미 받은 지금 기록을 그대로 쓴다.
     t_play = prep_karaoke(clear=False)
     r = Rec(out)
+    r.screen_opts = (os.environ.get("DEMO_SCREEN", "1280x720"), "6000000")
     # 아리랑 셋째 줄(31.23초 "나를 버리고 가시는 님은")이 시작될 때 문을 연다 → 녹화는 곡 27초부터
     while time.time() < t_play + 26.8:
         time.sleep(0.05)
@@ -360,15 +393,17 @@ def run_main(out):
     t = vs.wait_state("KARAOKE", 6)
     r.ev("state", "KARAOKE", ok=t is not None)
     r.at(64.0)
-    r.sub("내비에 3분 거리 목적지를 넣으면…", "⑧ 도착 3분 전")
+    r.sub("내비에 도착까지 3~5분 남은 목적지를 넣으면…", "⑧ 도착 3~5분 전")
     since = time.time()
     r.ev("app", f"내비 목적지 '{s7.DEST}'")
     ok = s7.set_destination()
     r.ev("app", "길 안내 누름", ok=ok)
     t_say = wait_log("말하기 시작", 20, since)
     if t_say:
-        r.events.append({"t": t_say, "kind": "sub", "text": "「도착까지 3분, 한 곡 더 됩니다」 (노래방일 때만 말한다)",
-                         "scene": "⑧ 도착 3분 전"})
+        said = log_epoch(r"말하기 요청: (.+)", since)
+        line = re.search(r"말하기 요청: (.+)", said[-1][1]).group(1).strip() if said else "도착까지 N분, 한 곡 더 됩니다"
+        r.events.append({"t": t_say, "kind": "sub", "text": f"「{line}」 (노래방일 때만 말한다)",
+                         "scene": "⑧ 도착 3~5분 전"})
         print("말하기 시작", t_say - r.t0)
     t_end = wait_log("말하기 끝", 20, since)
     recv = log_epoch(r"남은 시간 \S+ 정보: [1-9]\d*초", since)
@@ -384,9 +419,10 @@ def run_main(out):
     r.ev("info", f"남은 시간 {remain}초 수신 {t_recv - r.t0:.1f}s, 곧 도착 예정 {due - r.t0:.1f}s, 말하기 끝 {(t_end or 0) - r.t0:.1f}s")
     while time.time() < due - 13.0:
         time.sleep(0.2)
+    gap_min = max(1, round((time.time() + 1.5 - r.events[-1]["t"]) / 60))   # 잘라 낸 시간(분)
     r.screen_start("screen_b")
     r.ev("part_start")
-    r.sub("(2분 뒤) 도착 1분 전 — 차가 서기 전에 미리 시치미", "⑨ 도착 1분 전")
+    r.sub(f"({gap_min}분 뒤) 도착 1분 전 — 차가 서기 전에 미리 시치미", "⑨ 도착 1분 전")
     t_ret = wait_log("상태 KARAOKE -> RETURN", 30, due - 20)
     r.ev("state", "RETURN", ok=t_ret is not None, log_t=t_ret)
     time.sleep(0.3)

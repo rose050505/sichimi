@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """record_demo.py가 담은 것(에뮬레이터 화면 조각, qemu 소리, 콘솔 탭 프레임, 이벤트)을 한 영상으로 합친다(11/13).
 
-  ~/.venvs/demucs/bin/python -I tools/compose_demo.py recordings/demo_main docs/media/demo_main.mp4 [--layout main|lyrics] [--check-only]
+  ~/.venvs/demucs/bin/python -I tools/compose_demo.py recordings/demo_main docs/media/demo_main.mp4 [--layout main|lyrics] [--check-only] [--keep-gaps]
 
 맞추기
 - 소리(audio.wav)와 콘솔 프레임은 호스트 시계로 찍혀 있다(parecord를 띄운 시각, CDP 프레임 시각).
@@ -12,6 +12,9 @@
   지연은 실제 차에서 보이는 그대로 두고 영상에서 당기지 않는다.
 결과: 영상, 그리고 <녹화 폴더>/sync.json(맞춘 값과 확인 값), <녹화 폴더>/parts/(조각별 영상과 자막).
 H.264(libx264 -preset veryfast -crf 20), AAC 192k, 1920x1080 30fps.
+
+- 소리의 무음 틈(에뮬레이터가 바빠 qemu 출력에 끼는 수 ms~수십 ms의 0)은 시각을 그대로 두고 바로 앞 소리로 메운다(conceal_gaps, 11/14).
+  메운 자리는 sync.json의 audio_gaps. --keep-gaps면 그대로 둔다.
 """
 import json
 import os
@@ -127,6 +130,36 @@ def audio_checks(wav, t_audio, changes, log):
     return out, float(total_db), float(20 * np.log10(np.abs(rec).max() + 1e-12))
 
 
+def conceal_gaps(wav, out_wav, t_audio, parts, min_ms=4.0, max_ms=60.0, fade_ms=2.0):
+    """녹음 중 에뮬레이터가 바쁘면(11/13~14: 후진 때 후방 카메라 앱이 같이 뜰 때) qemu 출력에 수 ms~수십 ms의 완전한 무음(0)이
+    끼어 소리가 툭툭 끊긴다. 곡 위치를 재 보면 그 틈 동안 곡은 계속 흘러가 있으므로(소리가 빠진 것, 멈춘 것이 아님) 잘라 내면 안 된다.
+    시각은 그대로 두고 틈을 바로 앞의 같은 길이 소리로 채워 앞뒤를 fade_ms씩 겹쳐 잇는다(통화의 손실 은닉과 같은 방식).
+    각 조각(영상에 쓰는 곳) 안의, max_ms 이하 무음만 건드린다. 곡 사이의 진짜 무음은 그대로다."""
+    x, sr = sf.read(wav, dtype="float32", always_2d=True)
+    z = (np.abs(x).max(axis=1) <= 1.0 / 32768).astype(np.int8)
+    d = np.diff(np.concatenate([[0], z, [0]]))
+    runs = [(a, b) for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0])
+            if min_ms / 1000 * sr <= b - a <= max_ms / 1000 * sr]
+    f = int(fade_ms / 1000 * sr)
+    y = x.copy()
+    report = []
+    for p0, p1 in parts:
+        a0, a1 = int((p0 - t_audio) * sr), int((p1 - t_audio) * sr)
+        mine = [(a, b) for a, b in runs if a0 <= a and b <= a1 and a - (b - a) - f >= 0]
+        for a, b in mine:
+            n = b - a
+            src = y[a - n - f:a + f].copy()          # 틈 앞의 n+2f 샘플
+            w = np.ones((n + 2 * f, 1), np.float32)
+            ramp = (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, f, dtype=np.float32)))[:, None]
+            w[:f] = ramp
+            w[-f:] = ramp[::-1]
+            y[a - f:b + f] = y[a - f:b + f] * (1 - w) + src * w
+        report.append({"part_start_epoch": p0, "gaps": len(mine), "filled_ms": round(sum(b - a for a, b in mine) / sr * 1000, 1),
+                       "at_s": [round(a / sr - (p0 - t_audio), 2) for a, b in mine]})
+    sf.write(out_wav, y, sr, subtype="PCM_16")
+    return report
+
+
 def ass_header():
     return f"""[Script Info]
 ScriptType: v4.00+
@@ -221,14 +254,20 @@ def main():
         seg["zero"] = zero
         sync["segments"].append({"name": seg["name"], "zero_minus_spawn_s": round(zero - seg["spawn"], 3),
                                  "duration_s": round(dur, 2), "events": found})
-    checks, rms_db, peak_db = audio_checks(os.path.join(rec, "audio.wav"), t_audio, changes, log)
+    starts = [e["t"] for e in events if e["kind"] == "part_start"]
+    ends = [e["t"] for e in events if e["kind"] == "part_end"]
+    parts = list(zip(starts, ends))
+    wav = os.path.join(rec, "audio.wav")
+    if "--keep-gaps" not in sys.argv:
+        wav_fixed = os.path.join(rec, "audio_concealed.wav")
+        sync["audio_gaps"] = conceal_gaps(wav, wav_fixed, t_audio, parts)
+        print("무음 틈 메움:", sync["audio_gaps"], flush=True)
+        wav = wav_fixed
+    checks, rms_db, peak_db = audio_checks(wav, t_audio, changes, log)
     sync["audio"] = {"rms_db": round(rms_db, 1), "peak_db": round(peak_db, 1), "rises": checks}
     gain = float(min(24.0, max(0.0, -1.0 - peak_db)))
     sync["audio"]["gain_db"] = round(gain, 1)
 
-    starts = [e["t"] for e in events if e["kind"] == "part_start"]
-    ends = [e["t"] for e in events if e["kind"] == "part_end"]
-    parts = list(zip(starts, ends))
     pdir = os.path.join(rec, "parts")
     os.makedirs(pdir, exist_ok=True)
     timeline = []
@@ -289,7 +328,7 @@ def main():
         ss_a = p0 - t_audio
         fc += (f"[{a_idx}:a]atrim=start={ss_a:.4f}:duration={d:.3f},asetpts=PTS-STARTPTS,"
                f"volume={gain:.1f}dB,alimiter=limit=0.95:level=false[aout]")
-        inputs += ["-i", os.path.join(rec, "audio.wav")]
+        inputs += ["-i", wav]
         cmd = ["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", fc, "-map", "[v]", "-map", "[aout]",
                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-r", "30",
                "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-t", f"{d:.3f}", clip]

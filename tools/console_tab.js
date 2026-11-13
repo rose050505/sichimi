@@ -43,7 +43,7 @@ addEventListener('mousedown', e => {
     index.write(`${f.metadata.timestamp}\t${Date.now() / 1000}\t${name}\n`);
     try { await cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }); } catch (e) { /* 끝날 때 */ }
   });
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 85, maxWidth: 1600, maxHeight: 1000, everyNthFrame: 1 });
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 85, maxWidth: 1600, maxHeight: 1000, everyNthFrame: Number(process.env.SCREENCAST_NTH || 1) });  // 본 녹화는 2(호스트 CPU 아끼기)
   console.log('ready ' + Date.now() / 1000);
 
   const rl = readline.createInterface({ input: process.stdin });
