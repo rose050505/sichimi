@@ -240,13 +240,16 @@ class SingCoach(
         /** 이보다 짧은 녹음은 남기지 않는다. */
         const val MIN_TAKE_MS = 5_000L
         const val SHIFT_MIN_GAIN = 3
-        private val LAG_PROBES = (-100L..400L step 50L).toList()
+        /** 지연 가정별 점수를 함께 매겨 로그에 남기는 값들(블루투스 이어폰처럼 큰 지연도 보이게 600ms까지). */
+        private val LAG_PROBES = (-100L..600L step 50L).toList()
 
         /**
-         * 마이크 소리가 곡 위치보다 늦게 도착하는 만큼(ms). 사람은 들리는 반주에 맞춰 부르고, 재생 위치는 들리는 소리 기준이므로
-         * 남는 것은 마이크 경로의 지연이다. 에뮬레이터에서 잰 값(검증기록 G5). 박자 여유(200ms)가 나머지를 덮는다.
+         * 마이크 소리가 곡 위치보다 늦게 도착하는 만큼(ms). 사람은 들리는 반주에 맞춰 부르므로, 남는 것은 재생 위치 → 들리는 소리
+         * 지연과 마이크 경로 지연의 합이다. 처음(G5)에는 100ms였는데, 그 시험은 보컬을 들리는 소리보다 약 0.15초 일찍 넣었다.
+         * 들리는 반주에 맞춘 가상 마이크로 다시 재니 가장 좋은 가정이 약 200~250ms였다(검증기록 「노래 점수 녹화 모드」,
+         * 「마이크 지연 250ms」). 실제 마이크·이어폰 지연이 조금 더해지므로 250ms. 박자 여유(200ms)가 나머지를 덮는다.
          */
-        const val MIC_LAG_MS = 100L
+        const val MIC_LAG_MS = 250L
 
         fun line(title: String, score: Int, previousBest: Int?): String = when {
             previousBest == null -> "$title, ${score}점. 첫 기록이에요"

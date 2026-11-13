@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """관문 G5(마이크)와 노래 점수를 확인한다.
 
-  python3 tools/verify_g5.py <증거 폴더> <경우> [--sec 초]
+  python3 tools/verify_g5.py <증거 폴더> <경우> [--sec 초] [--lead 초]
 
 경우
   original  원곡 보컬 스템을 가상 마이크로 흘려 넣는다(박자에 맞춰 원곡 가수가 부른 셈) -> 높은 점수
@@ -29,7 +29,10 @@ import verify_scenes as v  # noqa: E402
 
 c, sh = v.c, v.sh
 STEMS = os.path.expanduser("~/해커톤/현대차앱/음원작업/분리/htdemucs")
-OUTPUT_LATENCY_S = 0.25  # 믹서에 들어간 소리가 스피커로 나오기까지(검증기록 G2)
+# 믹서에 들어간 소리가 호스트에서 들리기까지(검증기록 G2 실측 395ms). 보컬을 이때 넣어야 "들리는 반주에 맞춰 부르는 사람"과 같다.
+# 11/12 G5는 0.25로 넣어 들리는 소리보다 약 0.15초 일렀다(그래서 MIC_LAG_MS가 100으로 잡혔다). 11/14 0.40으로 고침.
+# 비교하려면 --lead 0.25처럼 바꿀 수 있다.
+OUTPUT_LATENCY_S = float(sys.argv[sys.argv.index("--lead") + 1]) if "--lead" in sys.argv else 0.40
 
 
 def cabin_alone(gear):
