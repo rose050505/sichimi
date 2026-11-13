@@ -3,10 +3,14 @@
 "도착까지 N분, 한 곡 더 됩니다"를 TTS로 한 번 말한다(같은 목적지가 3·4·5분으로 바뀌어 나온다).
 
 차 신호는 가상 콘솔 HTTP로, 목적지는 에뮬레이터 내비 화면을 사람이 누르듯 탭해서 넣는다(앱 안 가짜 입력 없음).
-목적지: 내비 검색 → ("최근" 목록, 없으면 음식점 분류) → "탐앤탐스 세종연구소입구점"(Pleos Connect Emulator 2.1.0 기본 위치에서 1.0km, 3분).
+목적지: 내비 검색 → ("최근" 목록, 없으면 음식점 분류) → "더몰트하우스 서핑시티"(음식점 분류 6번, 목록 거리 320m).
+에뮬레이터 데이터 초기화(11/12 22:40) 뒤 기본 위치(성남시 수정구 시흥동, 판교 근처)에서 경로 330m, 3분(11/13에 세 번 재어 모두 3분).
+초기화 전에는 "탐앤탐스 세종연구소입구점"(1.0km, 3~5분)을 썼는데 지금은 목록에 없다. 도착 시험(verify_arrival.py)의
+"스타벅스 판교아이스퀘어점"(2분)과는 다른 곳이다. 목록의 다른 곳은 2분 또는 5분이라 3~5분 구간 안쪽인 3분을 골랐다.
 호스트 소리를 parecord로 함께 담는다(docs/evidence/**/*.wav는 저장소에 넣지 않는다).
 
-  tools/verify_scene7.py docs/evidence/scene7
+  tools/verify_scene7.py docs/evidence/scene7      # 앱 데이터를 지우고(pm clear) 시작한다
+  tools/verify_scene7.py --help                    # 사용법만 찍는다(시험·pm clear 없음)
 """
 import os
 import re
@@ -19,7 +23,7 @@ import verify_scenes as vs  # noqa: E402
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "docs/evidence/scene7"
 vs.OUT = OUT
-DEST = "탐앤탐스 세종연구소입구점"
+DEST = "더몰트하우스 서핑시티"
 
 
 def tts_log():
@@ -166,5 +170,18 @@ def main():
     print("\n".join(md))
 
 
+USAGE = """사용법: tools/verify_scene7.py [결과 폴더]   (기본 docs/evidence/scene7)
+  장면 7 시험을 돈다. 시작할 때 앱 데이터를 지운다(pm clear --user 10 app.sichimi).
+  -로 시작하는 인자(--help, -h 등)를 주면 이 안내만 찍고 아무것도 하지 않는다."""
+
+
+def check_args(argv):
+    """시험을 돌려도 되는 인자인지 본다. 아니면 사용법을 찍고 끝낸다(pm clear 전에)."""
+    if any(a.startswith("-") for a in argv[1:]) or len(argv) > 2:
+        print(USAGE)
+        sys.exit(0 if all(a in ("-h", "--help") for a in argv[1:]) else 2)
+
+
 if __name__ == "__main__":
+    check_args(sys.argv)
     main()
