@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import verify_scenes as v  # noqa: E402
 
 c, sh = v.c, v.sh
-STEMS = os.path.expanduser("~/해커톤/현대차앱/음원작업/분리/htdemucs")
+STEMS = os.environ.get("SICHIMI_STEMS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "음원작업", "분리", "htdemucs"))  # 곡 분리 결과(저장소 밖)
 # 믹서에 들어간 소리가 호스트에서 들리기까지(검증기록 G2 실측 395ms). 보컬을 이때 넣어야 "들리는 반주에 맞춰 부르는 사람"과 같다.
 # 11/12 G5는 0.25로 넣어 들리는 소리보다 약 0.15초 일렀다(그래서 MIC_LAG_MS가 100으로 잡혔다). 11/14 0.40으로 고침.
 # 비교하려면 --lead 0.25처럼 바꿀 수 있다.

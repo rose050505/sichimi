@@ -20,7 +20,7 @@ import numpy as np  # noqa: E402
 import soundfile as sf  # noqa: E402
 from scipy.signal import fftconvolve, resample_poly  # noqa: E402
 
-STEMS = os.path.expanduser("~/해커톤/현대차앱/음원작업/분리/htdemucs")
+STEMS = os.environ.get("SICHIMI_STEMS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "음원작업", "분리", "htdemucs"))  # 곡 분리 결과(저장소 밖)
 NAMES = {"01-arirang": "arirang_yoon", "02-destroy": "jw_destroy", "03-wade": "jw_wade"}
 SR = 8000
 
