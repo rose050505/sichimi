@@ -37,7 +37,7 @@
 
 ## 자체 제작 그림
 
-시치미 캐릭터(4단계, 우비·밤·바람 모습), 곡별 무대 아트(산 능선과 달, 깨진 유리 조각, 물결), 앱 아이콘(소리 막대), 화면 아이콘 한 벌은 모두 이 앱을 위해 단순한 도형으로 직접 그렸습니다(`app/src/main/java/app/sichimi/ui/Mascot.kt`, `SongArt.kt`, `Icons.kt`, `res/drawable/ic_launcher_*.xml`). 다른 캐릭터·브랜드를 본뜨지 않았습니다.
+시치미 캐릭터(4단계, 우비·밤·바람 모습), 곡별 무대 아트(산 능선과 달, 깨진 유리 조각, 물결), 앱 아이콘(계기판 선 위로 안테나와 눈만 빼꼼), 화면 아이콘 한 벌은 모두 이 앱을 위해 단순한 도형으로 직접 그렸습니다(`app/src/main/java/app/sichimi/ui/Mascot.kt`, `SongArt.kt`, `Icons.kt`, `res/drawable/ic_launcher_*.xml`). 다른 캐릭터·브랜드를 본뜨지 않았습니다.
 
 ## 만들 때만 쓴 도구 (앱에 들어가지 않음)
 
@@ -50,7 +50,7 @@
 | NumPy, SciPy, soundfile | 박자 세기 트랙 만들기, 녹음 분석 | BSD-3-Clause |
 | MMS 정렬 모델(`MahmoudAshraf/mms-300m-1130-forced-aligner`, Meta MMS 기반) | 가사 줄 시각 맞춤(앱에는 시각 숫자만 들어감) | CC BY-NC 4.0 |
 | Hugging Face Transformers | 위 모델 실행 | Apache License 2.0 |
-| FFmpeg | 스템을 4채널 한 파일로 묶음, 녹음 변환 | LGPL 2.1 이상(빌드에 따라 GPL) |
+| FFmpeg | 스템과 박자 소리를 5채널 한 파일로 묶음, 녹음 변환 | LGPL 2.1 이상(빌드에 따라 GPL) |
 | JUnit 4 | 문지기 단위 테스트 | Eclipse Public License 1.0 |
 | firebase-tools(Firestore 에뮬레이터) | 보안 규칙을 게시 전에 로컬에서 시험 | MIT License |
 | CairoSVG | Pleos 디자인 가이드 그림(SVG)을 읽으려고 PNG로 바꿈 | LGPL 3.0 |
