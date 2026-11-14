@@ -100,7 +100,7 @@
 
 ## 테스트 환경과 필요한 설정
 
-- Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
+- Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 화면 규격 2560×1440, 160dpi(에뮬레이터 기본 AVD 설정 그대로), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
 - 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있고, 기어를 넣으면 "운전석에는 사람이 있다"는 사실로 방향을 스스로 맞춥니다(맞추기 전에는 운전석이 빈 것으로 보여 노래방이 열리지 않는 쪽). 검증기록 G1, [`docs/evidence/seat_auto/`](docs/evidence/seat_auto/).
 - 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~5분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
 - 노래 점수는 에뮬레이터의 마이크 입력을 씁니다(확장 컨트롤 → 마이크 → "Virtual microphone uses host audio input", 또는 `adb emu avd hostmicon`). 저장소의 APK에는 전국 랭킹 서버가 연결돼 있습니다. 직접 빌드할 때는 `app/google-services.json`(Firebase 프로젝트, 저장소에 넣지 않음)이 있어야 랭킹이 켜지고, 없으면 랭킹 칸만 "연결 안 됨"이고 나머지는 그대로입니다.
