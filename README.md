@@ -8,6 +8,18 @@
 
 *(소리 없는 화면 녹화, 주차 중. 동승석 문이 열려 있는 동안은 평범한 재생 화면 → 문이 닫히고 5초 뒤 「혼자만의 노래방」 무대(가사가 왼쪽부터 채워지고 시치미가 노래함) → 왼쪽 계기판에 문 열림이 보이는 순간 오른쪽 앱이 평범한 재생 화면으로 돌아갑니다. 소리는 시연 영상에서 확인해 주세요.)*
 
+## 시연 영상 (소리를 켜고 보세요)
+
+브라우저에서 바로 재생되는 주소(GitHub Pages)와 저장소 안 파일입니다. 왼쪽 계기판, 가운데 앱, 오른쪽 가상 콘솔(차 신호 조작)을 한 화면에 녹화했습니다.
+
+| 영상 | 바로 재생 | 저장소 파일 |
+|---|---|---|
+| 본 영상 2분 23초: 혼자 → 노래방, 문·창문·후진·동승자·마지막 곡·도착 1분 전 | [재생](https://rose050505.github.io/sichimi/media/demo_main.mp4) | [`docs/media/demo_main.mp4`](docs/media/demo_main.mp4) |
+| 가사 싱크 59초: 가사 줄이 노래에 맞춰 채워짐 | [재생](https://rose050505.github.io/sichimi/media/demo_lyrics_sync.mp4) | [`docs/media/demo_lyrics_sync.mp4`](docs/media/demo_lyrics_sync.mp4) |
+| 노래 점수 57초: 사람이 직접 부르고 곡 끝 점수 | [재생](https://rose050505.github.io/sichimi/media/demo_score.mp4) | [`docs/media/demo_score.mp4`](docs/media/demo_score.mp4) |
+
+본 영상은 첫 4.5초가 제목 카드이고, 오른쪽 아래에 지금 가수 목소리 상태(작게·원래대로)를, 문·창문이 열리는 순간 앱 둘레에 노란 테두리를 덧씌웠습니다. 화면은 소리보다 약 0.45초 빠릅니다(에뮬레이터에서 PC로 소리를 옮기는 시간, [검증기록](docs/검증기록.md) G2).
+
 ## 실행 세 단계
 
 1. Pleos Connect Emulator 2.1.0을 켜고 가상 콘솔을 엽니다: `adb forward tcp:8088 tcp:8088` 뒤 브라우저로 `http://127.0.0.1:8088/` (탭을 열어 두어야 아래에 **DDS ONLINE**이 뜹니다).
@@ -28,7 +40,7 @@
 - **녹음 공개**: 「전국 랭킹에 올리기」를 켤 때 "녹음도 함께 공개됩니다"를 먼저 보여 주고 한 번 더 누르게 합니다. 켜 두면 혼자만의 노래방에서 부른 **내 목소리만**(반주·원곡은 녹음하지 않음) 곡 시각에 맞춰 모아, 그 곡의 최고 기록이 되면 AAC(16kHz 모노, 최대 32kbps)로 압축해 차 안에 둡니다. 「점수」 탭에서 **미리 듣고** 「녹음 올리기」를 눌러야 서버에 올라갑니다. 점수 올리기와는 따로라, 녹음이 실패해도 점수는 올라갑니다.
 - 다른 사람의 녹음은 랭킹 줄의 「듣기」로, 앱에 든 반주 위에 목소리를 맞춰 노래방처럼 틉니다. **기어 P이고 혼자일 때만** 틀 수 있고, 기어를 바꾸거나 동승자가 타면 바로 멈춥니다. 스스로 다시 틀지 않습니다.
 - 녹음은 Firestore 문서 하나(`rank/{곡}/takes/{uid}`, 900,000바이트 이하)에 넣습니다. 앱의 세 곡은 모두 4분 미만이라 곡 전체가 들어가고, 더 긴 곡은 앞 7분까지만 담습니다. 점수 문서와 따로 두어 랭킹 목록을 읽을 때 소리까지 받지 않습니다.
-- 확인: 가상 마이크에 원곡 보컬을 넣으면 93점, 다른 곡 보컬은 21점, 끝까지 85점과 음성 안내(검증기록 G5).
+- 확인: 지금 APK(마이크 지연 250ms)로 가상 마이크에 원곡 보컬을 넣으면 94점, 다른 곡 보컬은 24점, 소리가 없으면 점수 없음. 앞선 빌드에서 곡 끝까지 채점과 음성 안내("2021 아리랑 응원가, 85점. 첫 기록이에요")도 확인했습니다(검증기록 G5, 「마이크 지연 250ms」).
 
 ## 혼자 달리는 출퇴근길이 나만의 무대가 된다 (v2)
 
@@ -55,7 +67,7 @@
 | 항목 | 이 앱에서 | 증거 |
 |---|---|---|
 | 차량특화성 | 좌석 착석·문·창문·기어·방향지시등 신호로 "혼자이고 닫힌 차"를 판정하는 문지기(상태 기계). 휴대폰에서는 알 수 없는 차 안 상황에만 열린다 | 아래 [문지기와 신호](#문지기와-신호), 상태 기계 [`gate/`](gate/src/main/kotlin/app/sichimi/gate/PrivacyGate.kt) |
-| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점·녹음·무대 단위 테스트 128개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
+| 기술 활용성 | Pleos Vehicle SDK(Seat, Door, Window, TurnSignal, Wiper), NaviHelper(남은 시간), TextToSpeech(한 줄 음성), AAOS 기어·주행 규제, Media3 미디어 세션, 마이크 음높이 채점(YIN) | 아래 [SDK 호출](#sdk-호출), [docs/검증기록.md](docs/검증기록.md)(관문 G0~G5와 장면 1~8을 가상 콘솔 신호로 확인한 기록), 문지기·채점·녹음·무대 단위 테스트 128개(`./gradlew :gate:test`), 장면 자동 검증 [`tools/verify_scenes.py`](tools/verify_scenes.py) |
 | 창의성 | 노래방을 사용자가 켜지 않는다. 동승자가 타거나 문·창문이 열리면 앱이 먼저 시치미를 뗀다. 혼자가 아닐 때는 화면 어디에도 "노래방"이 없다 | 장면 2·3 스크린샷 [`docs/evidence/scenes/`](docs/evidence/scenes/) |
 | 재미(v2) | 혼자·밀폐 신호와 들킬 뻔한 순간이 그대로 놀이가 된다: 시치미가 숨고, 대피 시간이 랭킹이 되고, 녹음이 고스트가 된다 | v2 흐름 증거 [`docs/evidence/v2/`](docs/evidence/v2/), 대표 화면 [`docs/evidence/ui/after_v2/`](docs/evidence/ui/after_v2/), 순수 로직 단위 테스트 128개 |
 | 화면(Pleos UI 가이드 + 한밤 무대) | 두 체계를 나눠 씀: 동승자가 있거나 일반 상태일 때는 Pleos 다크 토큰 그대로의 평범한 플레이어, 혼자일 때는 「한밤 무대」 체계(로고, 분홍·금색, 메달·단상, 하나로 이어진 조작부). 글자 크기는 Pleos 체계(본문 24sp 이상), 주행 화면 버튼 136dp, 대비 4.5:1 이상(69쌍), 움직임은 기어 P에서만 | 디자인 체계와 시안 [`docs/design/`](docs/design/디자인체계.md), 코드 [`ui/Night.kt`](app/src/main/java/app/sichimi/ui/Night.kt)·[`ui/Theme.kt`](app/src/main/java/app/sichimi/ui/Theme.kt), 대비 검사 [`tools/check_contrast.py`](tools/check_contrast.py), v2→v3 비교 [`docs/evidence/ui/after_v3/compare_v2/`](docs/evidence/ui/after_v3/compare_v2/) |
@@ -88,7 +100,7 @@
 
 | SDK | 호출 | 파일 |
 |---|---|---|
-| Vehicle 2.3.2 | `getSeat().checkSeatOccupancyCapabilities / getCurrentSeatOccupancy / registerSeatOccupancy`, `getDoor().…DoorPosition…`, `getWindow().…WindowPosition…`, `getTurnSignal().getCurrentTurnSignalState / registerTurnSignalState` | [`vehicle/VehicleSignals.kt`](app/src/main/java/app/sichimi/vehicle/VehicleSignals.kt) |
+| Vehicle 2.3.2 | `getSeat().checkSeatOccupancyCapabilities / getCurrentSeatOccupancy / registerSeatOccupancy`, `getDoor().…DoorPosition…`, `getWindow().…WindowPosition…`, `getTurnSignal().getCurrentTurnSignalState / registerTurnSignalState`, `getWiper()`(앞 와이퍼 상태: 시치미 우비, 문지기는 보지 않음) | [`vehicle/VehicleSignals.kt`](app/src/main/java/app/sichimi/vehicle/VehicleSignals.kt) |
 | AAOS Car API | `CarPropertyManager` `GEAR_SELECTION`, `CarUxRestrictionsManager` | [`vehicle/VehicleSignals.kt`](app/src/main/java/app/sichimi/vehicle/VehicleSignals.kt), [`core/DrivingRestrictions.kt`](app/src/main/java/app/sichimi/core/DrivingRestrictions.kt) |
 | NaviHelper 3.0.5 | `initialize`, `addListener`, `getDestinationInfo`, `onDestinationInfo`, `onDrivingInfo`, `onRouteCancelled` | [`navi/NaviRemaining.kt`](app/src/main/java/app/sichimi/navi/NaviRemaining.kt) |
 | TextToSpeech 3.3.1 | `TextToSpeech(context, Mode.ON_DEVICE)`, `initialize`, `setLocale`, `speak` | [`audio/Announcer.kt`](app/src/main/java/app/sichimi/audio/Announcer.kt) |
@@ -102,13 +114,13 @@
 
 - Pleos Connect Emulator 2.1.0 (AAOS API 34, x86_64), 화면 규격 2560×1440, 160dpi(에뮬레이터 기본 AVD 설정 그대로), 가상 콘솔 연결(DDS ONLINE). 화면 사용자는 10번입니다.
 - 이 에뮬레이터는 **좌석 착석 값이 반대로** 옵니다. 앱 설정의 "착석 값 뒤집기"가 기본으로 켜져 있고, 기어를 넣으면 "운전석에는 사람이 있다"는 사실로 방향을 스스로 맞춥니다(맞추기 전에는 운전석이 빈 것으로 보여 노래방이 열리지 않는 쪽). 검증기록 G1, [`docs/evidence/seat_auto/`](docs/evidence/seat_auto/).
-- 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~5분 목적지(예: 검색 → 음식점 → 「탐앤탐스 세종연구소입구점」)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
+- 장면 7(마지막 곡)은 노래방 상태에서 에뮬레이터 내비에 남은 시간 3~5분 목적지(예: 내비 → 「어디로 갈까요?」 → 음식점 분류 → 「뚜레쥬르 판교위든타워점」(1.2km, 약 4분). 시간대에 따라 2~5분으로 바뀌니 경로 화면의 시간을 보고 고릅니다)를 넣으면 들립니다. 앱이 재생 중이어야 내비 이벤트를 받습니다. TTS는 ON_DEVICE 모드라 Playground 앱 등록이나 키가 필요 없습니다.
 - 노래 점수는 에뮬레이터의 마이크 입력을 씁니다(확장 컨트롤 → 마이크 → "Virtual microphone uses host audio input", 또는 `adb emu avd hostmicon`). 저장소의 APK에는 전국 랭킹 서버가 연결돼 있습니다. 직접 빌드할 때는 `app/google-services.json`(Firebase 프로젝트, 저장소에 넣지 않음)이 있어야 랭킹이 켜지고, 없으면 랭킹 칸만 "연결 안 됨"이고 나머지는 그대로입니다.
 - 빌드: JDK 17, Gradle 8.10.2(래퍼), AGP 8.7.3, Kotlin 2.0.21, compileSdk 34, minSdk 28.
 
 ## APK
 
-`apk/Graphite_Sichimi_release.apk` (release 빌드, 63MB). 앞선 빌드들로 장면 1~8, 박자 세기, 노래 점수(가상 마이크), 전국 랭킹 서버 연결을 에뮬레이터에서 확인했고, 이 빌드(v3 한밤 무대 디자인)로 장면 1~5, 8, 랭킹 녹음(녹음·미리 듣기·주행/동승자 때 멈춤·서버에 올리고 받아 듣고 지우기), 대피 기록 올리기·대피 랭킹 화면, 동승자 화면 이미지 비교를 다시 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
+`apk/Graphite_Sichimi_release.apk` (release 빌드, 63MB). 앞선 빌드들로 장면 1~8, 박자 세기, 노래 점수(가상 마이크), 전국 랭킹 서버 연결을 에뮬레이터에서 확인했습니다. 이 빌드의 바로 앞 빌드(v3 한밤 무대 디자인, 노래 점수 마이크 지연만 다름)로 장면 1~5, 8, 랭킹 녹음(녹음·미리 듣기·주행/동승자 때 멈춤·서버에 올리고 받아 듣고 지우기), 대피 기록 올리기·대피 랭킹 화면, 동승자 화면 이미지 비교를 다시 확인했고, 이 빌드로는 단위 테스트 128개와 노래 점수(가상 마이크 94점)를 다시 확인했습니다([검증기록](docs/검증기록.md)의 마지막 절).
 
 직접 빌드하려면:
 

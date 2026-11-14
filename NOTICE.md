@@ -9,8 +9,8 @@
 | 폴더 | 곡 | 저작자 | 출처 | 라이선스 | 바꾼 것 |
 |---|---|---|---|---|---|
 | `songs/01-arirang` | 2021 아리랑 응원가 (윤도현 가창 음원) | 기증: 윤도현, 성윤용, 김민기, 강규용, 김승남, 박상우, 안도형, 윤정훈 | [공유마당(한국저작권위원회)](https://gongu.copyright.or.kr/gongu/wrt/wrt/view.do?wrtSn=13287221&menuNo=200020), 파일은 [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:2021_%EC%95%84%EB%A6%AC%EB%9E%91_%EC%9D%91%EC%9B%90%EA%B0%80_%EC%9C%A4%EB%8F%84%ED%98%84_%EA%B0%80%EC%B0%BD_%EC%9D%8C%EC%9B%90.flac) | 공유마당 기증저작물 자유이용. 공유마당의 표시 방법에 따라 "2021 아리랑 응원가 윤도현 가창 음원, 기증 윤도현 외 7인, 공유마당, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ko)"으로 표시합니다(Commons 표기도 CC BY 4.0) | 보컬·반주 분리, 박자 세기 채널 추가, Opus 변환, 가사 받아쓰기 |
-| `songs/02-destroy` | I Want To Destroy Something Beautiful (앨범 Dirty Wings) | Josh Woodward | [joshwoodward.com](https://www.joshwoodward.com/song/IWantToDestroySomethingBeautiful) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | 보컬·반주 분리, 박자 세기 채널 추가, Opus 변환, 가사 받아쓰기 |
-| `songs/03-wade` | Wade | Josh Woodward | [joshwoodward.com](https://www.joshwoodward.com/song/Wade) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | 보컬·반주 분리, 박자 세기 채널 추가, Opus 변환, 가사 받아쓰기 |
+| `songs/02-destroy` | I Want To Destroy Something Beautiful (앨범 Dirty Wings) | Josh Woodward (© Josh Woodward) | [joshwoodward.com](https://www.joshwoodward.com/song/IWantToDestroySomethingBeautiful) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | 보컬·반주 분리, 박자 세기 채널 추가, Opus 변환, 가사 받아쓰기 |
+| `songs/03-wade` | Wade | Josh Woodward (© Josh Woodward) | [joshwoodward.com](https://www.joshwoodward.com/song/Wade) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | 보컬·반주 분리, 박자 세기 채널 추가, Opus 변환, 가사 받아쓰기 |
 
 
 ## 앱에 들어간 라이브러리
