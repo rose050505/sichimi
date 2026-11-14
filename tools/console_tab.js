@@ -4,11 +4,11 @@
 //
 //   node tools/console_tab.js <프레임 폴더>
 //   표준 입력: "click X Y" (1600x1000 페이지 좌표) → "clicked <epoch초>",  "quit"
-// playwright 위치: 환경 변수 PLAYWRIGHT(기본 ~/개발/goodluck/node_modules/playwright), 브라우저는 ~/.cache/ms-playwright.
+// playwright 위치: 환경 변수 PLAYWRIGHT(없으면 node 기본 검색 경로의 playwright), 브라우저는 ~/.cache/ms-playwright.
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { chromium } = require(process.env.PLAYWRIGHT || (process.env.HOME + '/개발/goodluck/node_modules/playwright'));
+const { chromium } = require(process.env.PLAYWRIGHT || 'playwright');
 
 const dir = process.argv[2];
 fs.mkdirSync(dir, { recursive: true });
